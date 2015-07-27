@@ -1,0 +1,766 @@
+/*
+
+Daybed - A Library for Apache CouchDB  version: 0.0.23    July 27, 2015
+
+contact:   pink@mad.pink (aka Greg Miller)
+
+This is a simple library that calls CouchDB's REST functions and then decodes them using EasyJSON.
+
+There are 4 main groups of functions:
+Server Commands
+Document Commands
+Database Commands
+Design Document Commands
+
+A 5th group is being worked on for creating a local store affectionaly called "DaybedDB".
+
+Immediately under each command/function is a number (e.g. - 10.3.3) which tells you the corresponding location of that command in the Apache CouchDB help file.
+This is true at least for version 1.5.0 through 1.6.1, nothing earlier has been tested. 
+This library has not been tested on Cloudant or the beta of 2.0.0
+
+The following notes are incomplete...
+
+--fnord
+
+Most of these functions take one or more these parameters:
+
+pURL  -  the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
+For example:   "http://192.168.23.42:5984/"
+With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
+
+pDB   -   the name of the database being accessed
+
+pParams - an array with any OPTIONAL parameters, with the parameter as a key.
+For example:  to download documents when running the _all_docs function, and limit the list to only 10 records"
+     put true into tParams["include_docs"]
+     put 10 into tParams["limit"]
+
+pDocID - (used in GET functions)  the  "_id" value of the document you are downloading
+
+pDoc - (used in PUT functions)  an array with the data to be converted to JSON and uploaded to CouchDB.
+
+--don't panic
+*/
+
+
+on ___CouchDB_Server_Commands___
+end ___CouchDB_Server_Commands___
+
+function couch.getSlash pURL  
+     --10.2.1
+     local tList
+     put url(pURL) into tList
+     return tList
+     --returns welcome message
+end couch.getSlash
+
+function couch.active_tasks
+     --10.2.2 TODO
+end couch.active_tasks
+
+function couch.all_dbs pURL
+     --10.2.3
+     local tList
+     put "_all_dbs" into tFunk
+     put couch.DBURL(pURL,,,tFunk) into tURL
+     put URL (tURL) into temp
+     put arrayFromJson(temp) into tList
+     return tList
+     ---returns an array with an ordered list of all DBs
+end couch.all_dbs
+
+function couch.dbUpdates pURL
+     --10.2.4 TODO:  under construction
+     put "_db_updates" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk,pDoc) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.dbUpdates
+
+function couch.log pURL
+     --10.2.5  TODO:  under construction
+     put "_log" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk,pDoc) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.log
+
+function couch.restart pURL
+     --10.2.7
+     put "_XX" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk,pDoc) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.restart
+
+function couch.utils pURL
+     --10.2.9
+     put "_XX" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk,pDoc) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.utils
+
+function couch.uuids pURL
+     --10.2.10
+     put "_XX" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk,pDoc) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.uuids
+
+
+/* TODO:  Functions to work on
+•	10.2.8. /_stats
+?	couchdb
+?	httpd_request_methods
+?	httpd_status_codes
+?	httpd
+•	10.2.11. /favicon.ico
+•	10.2.12. Authentication
+?	Basic Authentication
+?	Cookie Authentication
+?	/_session
+?	Proxy Authentication
+?	OAuth Authentication
+•	10.2.13. Configuration
+?	/_config
+?	/_config/section
+?	/_config/section/key
+•	10.2.6. /_replicate
+?	Replication Operation
+?	Specifying the Source and Target Database
+?	Single Replication
+?	Continuous Replication
+?	Canceling Continuous Replication
+*/
+
+on ___CouchDB_Document_Commands___
+end ___CouchDB_Document_Commands___
+
+/* TODO:
+add HEAD Doc if possible
+no clue how to do this with Livecode */
+
+function couch.getdoc pURL pDB pParams pDocID
+     --10.4.1
+     put couch.DBURL(pURL,pDB,pParams,,pDocID) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.getdoc
+
+function couch.putdoc pURL pDB pParams pDoc
+     --10.4.1
+     --doesn't return what it should
+     couch.setHeaders
+     put pDoc["_id"] into tID
+     put jsonFromArray(pDoc) into pData
+     put couch.DBURL(pURL,pDB,pParams,,tID) into tURL
+     put pData into URL (tURL)
+     put the urlResponse into tResult
+     return arrayFromJson(tResult)
+end couch.putdoc
+
+function couch.deletedoc pURL pDB pParams pDocID
+     --10.4.1
+     --returns weird error
+     put couch.DBURL(pURL,pDB,pParams,,pDocID) into tURL
+     delete URL (tURL)
+     put the urlResponse into tResult
+     return arrayFromJson(tResult)
+end couch.deletedoc
+
+
+/* TODO:
+ add COPY Doc if possible
+ add ATTACHMENT Doc if possible*/
+
+on ___CouchDB_Database_Commands___
+end ___CouchDB_Database_Commands___
+
+function couch.createdb pURL pDB
+     --10.3.1
+     local tDB, tResult
+     couch.setheaders
+     put empty into URL (couch.DBURL(pURL,pDB))
+     return arrayFromJson(urlResponse)
+     --returns {"ok":true}   or  {"error":something, "reason":something}
+end couch.createdb
+
+function couch.getdb pURL pDB
+     --10.3.1
+     local tDB, tResult
+     couch.setheaders
+     put URL (couch.DBURL(pURL,pDB)) into tResult
+     return arrayFromJson(tResult)
+end couch.getdb
+
+function couch.deletedb pURL pDB
+     --10.3.1
+     local tDB, tResult
+     couch.setheaders
+     delete URL (couch.DBURL(pURL,pDB))
+     return arrayFromJson(urlResponse)
+     --hopefully returns {"ok":true}   or  {"error":something, "reason":something}
+end couch.deletedb
+
+
+function couch.all_docs pURL pDB pArray pDocsOnly
+     --10.3.2
+     local temp
+     put "_all_docs" into tFunk
+     put couch.DBURL(pURL,pDB,pArray,tFunk) into tURL
+     put URL (tURL) into temp
+     put arrayFromJson(temp) into tResult
+     if pDocsOnly is true then 
+          return tResult["rows"]
+     else
+          return tResult
+     end if
+end couch.all_docs
+
+function couch.bulk_docs pDB  
+     --TODO: add extra params  
+     --10.3.3  
+     --Not working
+     local tPostData,tResult
+     couch.setHeaders
+     put "{"&quote&"docs"&quote&": [" into tPostData
+     repeat with x=2 to the paramCount
+          put jsonFromArray(param(x)) after tPostData
+          if x < the paramCount then put comma after tPostData
+     end repeat
+     put "] }" after tPostData
+     put couch.DBURL(pDB,pArray) into tURL
+     post tPostData to URL (tURL)
+     put it into tResult
+     return arrayFromJson(it)
+end couch.bulk_docs
+
+function couch.changes pURL pDB pParams
+     --10.3.4
+     couch.setHeaders
+     put "_changes" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk) into tURL
+     put URL (tURL) into tResult
+     return arrayFromJson(tResult)
+end couch.changes
+
+function couch.compact pURL pDB
+     --10.3.5
+     put "_compact" into tFunk
+     put couch.DBURL(pURL,pDB,,tFunk) into tURL
+     post empty to URL (tURL) 
+     return arrayFromJson(it)
+     --should return {"ok":true}
+end couch.compact
+
+function couch.compact.designdoc pURL pDB pDoc
+     --10.3.6  NEEDS TESTING
+     put "_compact" into tFunk
+     put couch.DBURL(pURL,pDB,,tFunk,pDoc) into tURL
+     post empty to URL (tURL) 
+     return arrayFromJson(it)
+end couch.compact.designdoc
+
+function couch.ensurefullcommit pURL pDB
+     --10.3.7
+     put "_ensure_full_commit" into tFunk
+     put couch.DBURL(pURL,pDB,,tFunk,) into tURL
+     post empty to URL (tURL) 
+     return arrayFromJson(it)
+     --hopefully {"ok":true,"instance_start_time":"TIMESTAMP"}
+end couch.ensurefullcommit
+
+function couch.viewcleanup pURL pDB
+     --10.3.8
+     put "_view_cleanup" into tFunk
+     put couch.DBURL(pURL,pDB,,tFunk,) into tURL
+     post empty to URL (tURL) 
+     return arrayFromJson(it)
+     --hopefully returns {"ok":true}
+end couch.viewcleanup
+
+function couch.security pURL pDB pMode pSettings
+     --10.3.9
+     put "_security" into tFunk
+     put couch.DBURL(pURL,pDB,,tFunk) into tURL
+     
+     switch pMode
+          case "get"
+               put URL (tURL) into tResult
+               break
+          case "put"
+               put jsonFromArray(pSettings) into pData
+               put pData into URL (tURL) 
+               put the result into tResult
+               break
+     end switch
+     return arrayFromJson(tResult)
+end couch.security
+
+function couch.tempView pURL pDB pParams pView
+     --10.3.10
+     ---should be used in development but not in production environ
+     put "_temp_view" into tFunk
+     put couch.DBURL(pURL,pDB,pParams,tFunk) into tURL
+     put jsonFromArray(pView) into tData
+     post tData to URL (tURL) 
+     return arrayFromJson(it)
+end couch.tempView
+
+function couch.purge pURL pDB pDocs
+     --10.3.11
+     put "_purge" into tFunk
+     put jsonFromArray(pDocs) into tData
+     put couch.DBURL(pURL,pDB) into tURL
+     post tData to URL (tURL) 
+     return arrayFromJson(it)
+end couch.purge
+
+function couch.missingrevs pURL pDB pDocs
+     --10.3.12
+     --untested
+     put "_missing_revs" into tFunk
+     put jsonFromArray(pDocs) into tData
+     put couch.DBURL(pURL,pDB) into tURL
+     post tData to URL (tURL) 
+     return arrayFromJson(it)
+end couch.missingrevs
+
+function couch.revsdiff pURL pDB pDocs
+     --10.3.13
+     --untested
+     put "_revs_diff" into tFunk
+     put jsonFromArray(pDocs) into tData
+     put couch.DBURL(pURL,pDB) into tURL
+     post tData to URL (tURL) 
+     return arrayFromJson(it)
+end couch.revsdiff
+
+function couch.revslimit pURL pDB pFactor
+     --10.3.14
+     --untested
+     -----INCOMPLETE
+     put "_revs_limit" into tFunk
+     put jsonFromArray(pDocs) into tData
+     put couch.DBURL(pURL,pDB) into tURL
+     
+     switch pMode
+          case "get"
+               put URL (tURL) into tResult
+               break
+          case "put"
+               put jsonFromArray(pSettings) into pData
+               put pData into URL (tURL) 
+               put the result into tResult
+               break
+     end switch
+     
+     post tData to URL (tURL) 
+     return arrayFromJson(it)
+end couch.revslimit
+
+on ___CouchDB_DesignDocs_Commands___
+end ___CouchDB_DesignDocs_Commands___
+
+/*   FUNCTIONS NOT YET IMPLEMENTED
+•	10.5.1. /db/_design/design-doc
+•	10.5.2. /db/_design/design-doc/attachment
+•	10.5.3. /db/_design/design-doc/_info
+	?	View Index Information
+•	10.5.4. /db/_design/design-doc/_view/view-name
+	?	View Options
+	?	Querying Views and Indexes
+	?	Sorting Returned Rows
+		?	Sorting order and startkey/endkey
+		?	Raw collation
+	?	Using Limits and Skipping Rows
+•	10.5.5. /db/_design/design-doc/_show/show-name
+•	10.5.6. /db/_design/design-doc/_show/show-name/doc-id
+•	10.5.7. /db/_design/design-doc/_list/list-name/view-name
+•	10.5.8. /db/_design/design-doc/_list/list-name/other-ddoc/view-name
+•	10.5.9. /db/_design/design-doc/_update/update-name
+•	10.5.10. /db/_design/design-doc/_update/update-name/doc-id
+•	10.5.11. /db/_design/design-doc/_rewrite/path
+*/
+
+on ___CouchDB_Builder___
+end ___CouchDB_Builder___
+
+command couch.setHeaders
+     local couchHeaders
+     put "Accept: application/json, text/plain, text/event-stream"&cr into couchHeaders
+     put "Content-Type: application/json" after couchHeaders
+     set the httpheaders to couchHeaders
+end couch.setHeaders
+
+function couch.DBURL pURL pDB pArray pFunk pDoc
+     put pURL into tURL
+     if pDB is not empty then put pDB after tURL
+     if pDB is not empty and pFunk is not empty then put slash after tURL
+     if pFunk is not empty then put pFunk after tURL
+     if pFunk is not empty and pDoc is not empty then put slash after tURL
+     if pFunk is empty and pDoc is not empty and pDB is not empty then put slash after tURL
+     if pDoc is not empty then put pDoc after tURL
+     if pArray is not empty then put couch.parseParams(pArray) after tURL
+     return tURL
+end couch.DBURL
+
+function couch.parseParams pParamArray
+     if tParamArray is empty then return empty
+     put "?" into tParamString
+     repeat for each key x in pParamArray
+          put x & "=" & pParamArray[x] after tParamString
+          if x = the paramCount then exit repeat
+          put "&" after tParamString
+     end repeat
+     return tParamString
+end couch.parseParams
+
+
+on ___Daybed_DB_Local___
+     
+end ___Daybed_DB_Local___
+
+/* TODO:  working on local storage to sync with    */
+
+on ___easyJSON___
+     --SOURCE:  https://github.com/luxlogica/easyjson
+     --THANKS IGOR, MARK & ANDRE
+end ___easyJSON___
+
+/////////////////////////////////////////////////////////////////////////////////////	
+// EasyJSON - an open source JSON parser and encoder for LiveCode
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// @author: Igor de Oliveira Couto <igor@semperuna.com>
+//
+// This code is open source, and released freely, under no restrictions, to the public domain.
+//
+// This work is based on previous works by Mark Smith and Andre Garzia.
+// Contributions are welcomed and encouraged.
+//
+// USE AT YOUR OWN RISK
+// No promises are made of suitability or dependability on this code, for any purpose.
+// You cannot hold the authors liable for any damage or loss due to any use or application
+// of this code
+//
+/////////////////////////////////////////////////////////////////////////////////////
+	
+//
+//----------------------------------------------------------
+// GENERATING A JSON DOCUMENT FROM A LIVECODE ARRAY
+//----------------------------------------------------------
+//
+	
+/*
+This function produces a valid JSON document, as per http://www.json.org,
+given any LiveCode array.
+@param pArray a LiveCode array.
+@return if pArray is numerically indexed, returns a JSON document where the root element
+is a JSON array. If pArray contains non-numerical keys, returns a JSON document
+where the root element is a JSON object.
+*/
+
+function jsonFromArray pArray
+   if pArray is not an array then return "Parser Error: parameter given is not an array."
+   local tJSON
+   if isNumericalArray(pArray) then
+      // the array's keys are all *numerical*, so the root element will be a JSON *array*
+      put "[" into tJSON
+      local tValue
+      repeat for each element tValue in pArray
+         put toJsonValue(tValue) & comma after tJSON
+      end repeat
+      put "]" into the last char of tJSON
+   else
+      // the array's keys are not all numerical, so the root element will be a JSON *object*
+      put "{" into tJSON
+      local tKey
+      repeat for each key tKey in pArray
+         // all JSON object keys are double-quoted strings:
+         put quote & tKey & quote & ":" & toJsonValue(pArray[tKey]) & comma after tJSON
+      end repeat
+      put "}" into the last char of tJSON
+   end if
+   return tJSON
+end jsonFromArray
+
+
+/*
+This function checks the keys of a LiveCode array,
+and returns TRUE if all the keys are numerical - otherwise, returns false.
+
+@param pArray a LiveCode array
+@return TRUE if the array's keys are all numerical, otherwise FALSE
+*/
+private function isNumericalArray pArray
+   local tKeys
+   put the keys of pArray into tKeys
+   filter tKeys without "[0-9]*"
+   if the number of lines in tKeys > 0 then return false
+   else return false
+end isNumericalArray
+
+
+/*
+This function takes a LiveCode value, and produces a string representing
+a valid JSON 'value', as per http://www.json.org/.
+@param pValue any LiveCode value: array, string, number, date, colour, boolean, etc.
+@return a string representing a valid and comparable JSON 'value' - JSON values are:
+        number, string, boolean, array or object.
+        LiveCode 'empty' returns JSON 'null'.
+*/
+private function toJsonValue pValue
+   switch
+      case pValue is an array
+         // this allows us to have nested JSON objects and arrays:
+         return jsonFromArray(pValue)
+         break
+      case pValue is empty
+         return "null"
+         break
+      case pValue is a boolean
+         if pValue then return "true"
+         else return "false"
+         break
+      case pValue is a number
+         return pValue
+         break
+      default
+         // any other value is processed as a string.
+         // JSON strings require that certain characters be 'escaped' with a backslash:
+         replace "\" with "\\" in pValue // the backslash itself
+         replace quote with ("\" & quote) in pValue // the double quote
+         replace "/" with "\/" in pValue // the (forward) slash
+         replace tab with "\t" in pValue // the tab
+         replace return with "\n" in pValue // the return
+         return quote & pValue & quote
+   end switch
+end toJsonValue
+
+
+//
+//----------------------------------------------------------
+// GENERATING A LIVECODE ARRAY FROM A JSON DOCUMENT
+//----------------------------------------------------------
+//
+
+function arrayFromJson pJson
+   replace cr with empty in pJson
+   -- MDW-2013-09-23 faster trim
+   put word 1 to -1 of pJson into pJson
+   if pJson is empty then return "Parser Error: no content found in JSON string."
+   if first char of pJson is "{" and last char of pJson is "}" then
+      // root element in the JSON string is a JSON object
+      return arrayFromJsonObject(pJson)
+   else if first char of pJson is "[" and last char of pJson is "]" then
+      // root element in the JSON string is a JSON array
+      return arrayFromJsonArray(pJson)
+   else
+      // the root element cannot be identified as either JSON object or array
+      return "Parser Error: JSON array or object expected but not found."
+   end if
+end arrayFromJson
+
+
+/*
+This function returns a LiveCode array, based on data parsed from a JSON array.
+
+@param pJson a string representing a valid JSON array, as per http://www.json.org.
+@return a LiveCode array - numerically indexed, starting from '1'
+*/
+private function arrayFromJsonArray pJson
+   -- MDW-2013-09-23 faster trim
+   put char 2 to -2 of (word 1 to -1 of pJson) into pJson
+   put listJsonTokens(pJson,comma) into pJson
+   if word 1 to 2 of pJson is "Parser Error:" then return pJson
+   local tArray, tKey, tValue
+   put 1 into tKey // we are going to produce a 1-based numerically-indexed array
+   repeat for each line tValue in pJson
+      put valueFromJson(tValue) into tValue
+      if word 1 to 2 of tValue is "Parser Error:" then return tValue
+      put tValue into tArray[tKey]
+      add 1 to tKey
+   end repeat
+   return tArray
+end arrayFromJsonArray
+
+
+/*
+This function returns a LiveCode array, based on data parsed from a JSON object.
+
+@param pJson a string representing a valid JSON object, as per http://www.json.org.
+@return a LiveCode array, where the JSON object's keys become the array's keys.
+*/
+
+private function arrayFromJsonObject pJson
+   -- MDW-2013-09-23 faster trim
+   put char 2 to -2 of (word 1 to -1 of pJson) into pJson
+   // a JSON object is a comma-separated list of key:value pairs.
+   // first, we will split each key:value pair into a (return-separated) list:
+   put listJsonTokens(pJson,comma) into pJson
+   if word 1 to 2 of pJson is "Parser Error:" then return pJson
+   local tArray, tKey, tValue
+   repeat for each line tValue in pJson
+      // now we read each key:value pair into our array:
+      put listJsonTokens(tValue, ":") into tValue
+      if word 1 to 2 of tValue is "Parser Error:" then return tValue
+      put valueFromJson(line 1 of tValue) into tKey // line 1 contains the key
+      if word 1 to 2 of tKey is "Parser Error:" then return tKey
+      put valueFromJson(line 2 of tValue) into tValue // line 2 contains the value
+      if word 1 to 2 of tValue is "Parser Error:" then return tValue
+      put tValue into tArray[tKey]
+   end repeat
+   return tArray
+end arrayFromJsonObject
+
+
+/*
+This function is the 'heart' of the JSON parser: it takes a string representing
+a valid JSON 'value' - as per http://www.json.org - and returns the equivalent
+LiveCode value.
+
+@param pJson a string representing a valid JSON 'value', as per http://www.json.org.
+@return the equivalent LiveCode value: JSON strings become strings, JSON numbers
+        become numbers, JSON booleans become booleans, JSON objects and arrays become
+        LiveCode arrays, JSON 'null' becomes empty. All escaped characters are
+        converted to their 'unescaped' equivalent characters, and hex-encoded unicode
+        escaped characters are converted to utf-8 characters.
+*/
+private function valueFromJson pJson
+   switch
+      case (first char of pJson is "[") and (last char of pJson is "]")
+         // this is a JSON array
+         return arrayFromJsonArray(pJson)
+         break
+      case (first char of pJson is "{") and (last char of pJson is "}")
+         // this is a JSON object
+         return arrayFromJsonObject(pJson)
+         break
+      case pJson is "true"
+         return true
+         break
+      case pJson is "false"
+         return false
+         break
+      case pJson is "null"
+         return empty
+         break
+      case (first char of pJson is quote) and (last char of pJson is quote)
+         // this is a JSON string
+         delete first char of pJson
+         delete last char of pJson
+         replace ("\" & quote) with quote in pJson
+         replace "\/" with "/" in pJson
+         replace "\t" with tab in pJson
+         // some JSON encoders escape a *single* return character as "\r\n":
+         replace "\r\n" with return in pJson
+         replace "\r" with return in pJson
+         replace "\n" with return in pJson
+         replace "\f" with return in pJson
+         replace "\\" with "\" in pJson
+         // some JSON encoders escape unicode characters as "\uHHHH",
+         // where 'H' is a hexadecimal digit:
+         local tCode, tChar
+         repeat while matchtext(pJson,"\\u([0-9A-Fa-f]{4})",tCode)
+            set the useunicode to true
+            put unidecode(numtochar(baseconvert(tCode,16,10)),"UTF8") into tChar
+            replace ("\u" & tCode) with tChar in pJson
+         end repeat
+         // the 'delete' (or 'backspace') character is allowed to
+         // be included in a JSON string as well - if we find it,
+         // we should simply delete the character before it:
+         local tStart, tEnd
+         repeat while matchchunk(pJson, "(\\b)", tStart, tEnd)
+            delete char (tStart - 1) to tEnd of pJson
+         end repeat
+         return pJson
+         break
+      case pJson is a number
+         // we should check for a number value only *after* checking for a string,
+         // as in LiveCode both '"1"' and '1' evaluate as 'numbers'.
+         return pJson
+         break
+      default
+         // any other values that we have not been able to identify
+         // should issue a warning:
+         return "Parser Error: unable to identify JSON value type in" && pJson & "."
+   end switch
+end valueFromJson
+
+
+/*
+JSON arrays and objects can have strings, as well as other nested arrays and objects,
+inside them. If we try to use LiveCode's built-in text parsing functions to try and
+identify JSON 'items', then LiveCode will not take into consideration whether the
+itemDelimiter is found inside a literal string or not, and the nesting of objects is
+also ignored - making the parsing fail on most cases.
+This function, therefore, will appropriately indentify JSON 'items' (= tokens), by
+taking into consideration whether the itemDelimiter is inside a literal string or not -
+and only splitting items when the delimiter is outside a literal string - and also taking
+into consideration the nesting level of items - and only splitting items which are found
+at the root level of the JSON string passed.
+
+@param pJson a string representing a list of valid JSON values - per http://www.json.org.
+@param pDelimiter a single-character itemDelimiter. If pJson contains the contents of a
+                  JSON array, then pDelimiter should be a comma. If we are listing the
+                  key-value pairs of a JSON object, then pDelimiter should be ":".
+@return a return-separated list of JSON tokens found in pJson.
+*/
+private function listJsonTokens pJson, pDelimiter
+   local tList, tNesting, tWithinString
+   local tTrimmedList
+   put false into tWithinString
+   put 0 into tNesting
+   if pDelimiter is empty then put comma into pDelimiter
+   local tChar
+   repeat for each char tChar in pJson
+      switch
+         case tChar is quote
+            if not(tWithinString and (last char of tList is "\")) then
+               // if we are inside a literal string, and the last character is a backslash,
+               // then so this is an 'escaped quote character', ie. a '\"' sequence.
+               // If NOT, this is not an escaped literal quote, and it should
+               // automatically toggle our 'within string' flag:
+               put not tWithinString into tWithinString
+            end if
+            put tChar after tList
+            break
+         case tChar is in "{[" and not tWithinString
+            // tNesting indicates the nesting level of the object we are currently parsing.
+            // When we 'enter' an object, nesting increases by 1.
+            add 1 to tNesting
+            put tChar after tList
+            break
+         case tChar is in "]}" and not tWithinString
+            subtract 1 from tNesting
+            // tNesting indicates the nesting level of the object we are currently parsing.
+            // When we 'exit' an object, nesting decreases by 1. If, however, tNesting
+            // becomes -1, this indicates we came across a closing "]" or "}" without
+            // a matching opening bracket - malformed JSON:
+            if tNesting < 0 then
+               if tChar is "]" then return "Parser Error: unmatched JSON array closure."
+               if tChar is "}" then return "Parser Error: unmatched JSON object closure."
+            end if
+            put tChar after tList
+            break
+         case (tChar is pDelimiter) and (tNesting is 0) and (not tWithinString)
+            // we found a delimiter at root level, outside a literal string,
+            // so we should move to the next line in the list:
+            put return after tList
+            break
+         default
+            // all other characters should just be directly copied
+            // into the current position on the list:
+            put tChar after tList
+      end switch
+   end repeat
+   // 'trim' all lines in our list:
+   -- MDW-2013-09-23 faster repeat
+   repeat for each line tLine in tList
+      put (word 1 to -1 of tLine) & cr after tTrimmedList
+   end repeat
+   return tTrimmedList
+end listJsonTokens
