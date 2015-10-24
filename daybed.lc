@@ -24,7 +24,11 @@ With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
 pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
 
 pDocID - (required for most get functions) the document "_id" being retrieved
-
+    for design documents, use the pDocID param to specify it
+		for selecting a view from a design document, add a slash with the view name to pDocID, for example:
+			for the following view call /_design/querymon/_view/phone
+			put querymon/phone into pDocID
+		
 pDoc - (required for most put and post functions) array containing the data being converted into a document for the database
 
 pParams - an array with any OPTIONAL parameters, with the parameter as a key.
@@ -35,11 +39,17 @@ For example:  to download documents when running the _all_docs function, and lim
 pOptions - (optional) header options, including user and pass (see "Authentication")
 
 pFormat - (optional) by default, an array is returned unless "rawjson"  or "prettyjson" is specified
+      --don't panic
 
 NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
 https://github.com/bhall2001/fastjson
 https://github.com/luxlogica/easyjson
---don't panic
+
+TO-DO:
+--Design and view documents need to be updated
+--need to add attachments
+--offline syncable database
+--need to upload DayBed Toolbox
 */
 
 function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
@@ -52,6 +62,19 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
 		case "doc"
 			put empty into pFunk		
 			break
+		case "designinfo"
+				put "/_info" after pDocID
+		case "design"
+				put "_design/" before pDocID
+				put empty into pFunk
+				break
+		case "view"
+				set itemdel to "/"
+				put item 1 of pDocID into pDesign
+				put item 2 of pDocID into pView
+        put "_design/" & pDesign & "/_view/" & pView into pDocID
+				put empty into pFunk
+        break
 		default
 			put "_" before pFunk
 			break
@@ -116,9 +139,6 @@ function couch.bulk_docs pDB pFormat
   -----
   local tURL
   -----
-
-     --TODO: add extra params  
-     --10.3.3  
      --Not working
      local tPostData,tResult
      couch.setHeaders
@@ -149,7 +169,7 @@ command couch.setHeaders pOptions
    set the httpheaders to couchHeaders
 end couch.setHeaders
 
-function couch.DBURL pURL pDB pArray pFunk pDoc
+function couch.DBURL pURL pDB pParams pFunk pDocID
   -----
   local tURL
   -----
@@ -162,10 +182,10 @@ function couch.DBURL pURL pDB pArray pFunk pDoc
      if pDB is not empty then put pDB after tURL
      if pDB is not empty and pFunk is not empty then put slash after tURL
      if pFunk is not empty then put pFunk after tURL
-     if pFunk is not empty and pDoc is not empty then put slash after tURL
-     if pFunk is empty and pDoc is not empty and pDB is not empty then put slash after tURL
-     if pDoc is not empty then put pDoc after tURL
-     if pArray is not empty then put couch.parseParams(pArray) after tURL
+     if pFunk is not empty and pDocID is not empty then put slash after tURL
+     if pFunk is empty and pDocID is not empty and pDB is not empty then put slash after tURL
+     if pDocID is not empty then put pDocID after tURL
+     if pParams is not empty then put couch.parseParams(pParams) after tURL
      return tURL
 end couch.DBURL
 
@@ -173,7 +193,6 @@ function couch.parseParams pParamArray
   -----
   local tParamString
   -----
-
      if tParamArray is empty then return empty
      put "?" into tParamString
      repeat for each key x in pParamArray
@@ -324,5 +343,3 @@ function snapJson pJson
    replace cr with empty in pJson
    return pJson
  end snapJson
-
-*/
