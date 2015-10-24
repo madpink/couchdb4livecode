@@ -1,3 +1,4 @@
+<?lc
 /*
 
 Daybed - A Library for Apache CouchDB  version: 0.2.45    October 23, 2015
@@ -62,6 +63,9 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
 		case "doc"
 			put empty into pFunk		
 			break
+		case "slash"
+		   put empty into pFunk
+			 break
 		case "designinfo"
 				put "/_info" after pDocID
 		case "design"
@@ -115,10 +119,18 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
     -----
     local tURL, tResult
     -----
-	couch.setHeaders pOptions
-	put "_" before pFunk
+  switch pFunk
+		case "doc"
+			put empty into pFunk
+			break
+		default
+			put "_" before pFunk
+			break
+	end switch
+	
+  couch.setHeaders pOptions
 	put couch.DBURL(pURL,pDB,pParams,pFunk) into tURL
-	post empty to URL(tURL)
+	post pDoc to URL(tURL)
 	put the urlResponse into tResult
 	return returnFormat(tResult,pFormat)
 end couch.post
@@ -127,32 +139,22 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions pFormat
     -----
     local tURL, tResult
     -----
+	switch pFunk
+		case "db"
+			put empty into pDoc
+		case "doc"
+			put empty into pFunk
+			break
+		default
+			put "_" before pFunk
+			break
+	end switch
 	couch.setHeaders
-	put "_" before pFunk
 	put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
 	delete URL(tURL)
 	put the urlResponse into tResult
 	return returnFormat(tResult,pFormat)
 end couch.delete
-
-function couch.bulk_docs pDB pFormat
-  -----
-  local tURL
-  -----
-     --Not working
-     local tPostData,tResult
-     couch.setHeaders
-     put "{"&quote&"docs"&quote&": [" into tPostData
-     repeat with x=2 to the paramCount
-          put jsonFromArray(param(x)) after tPostData
-          if x < the paramCount then put comma after tPostData
-     end repeat
-     put "] }" after tPostData
-     put couch.DBURL(pDB,pArray) into tURL
-     post tPostData to URL (tURL)
-     put it into tResult
-     return returnFormat(it,pFormat)
-end couch.bulk_docs
 
 on ___CouchDB_Builder___
 end ___CouchDB_Builder___
@@ -208,7 +210,7 @@ function returnFormat pResult pFormat
   local tFormat
   -----
 
-   if pFormat is empty then put "array" into pFormat
+   if pFormat is empty then put "prettyjson" into pFormat
    switch pFormat
       case "array"
          return arrayFromJson(pResult)
