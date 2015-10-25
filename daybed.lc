@@ -54,65 +54,70 @@ TO-DO:
 */
 
 function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
-    -----
-    local tURL, tResult
-    -----
-	switch pFunk
-		case "db"
-			put empty into pDocID
-		case "doc"
-			put empty into pFunk		
-			break
-		case "slash"
-		   put empty into pFunk
-			 break
-		case "designinfo"
-				put "/_info" after pDocID
-		case "design"
-				put "_design/" before pDocID
-				put empty into pFunk
-				break
-		case "view"
-				set itemdel to "/"
-				put item 1 of pDocID into pDesign
-				put item 2 of pDocID into pView
-        put "_design/" & pDesign & "/_view/" & pView into pDocID
-				put empty into pFunk
-        break
-		default
-			put "_" before pFunk
-			break
-	end switch
-		
-	couch.setHeaders pOptions
-	put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-	put URL(tURL) into tResult
-	return returnFormat(tResult,pFormat)
+   -----
+   local tURL, tResult
+   -----
+   switch pFunk
+      case "db"
+         put empty into pDocID
+      case "doc"
+         put empty into pFunk		
+         break
+      case "slash"
+         put empty into pFunk
+         break
+      case "designinfo"
+         put "/_info" after pDocID
+      case "design"
+         put "_design/" before pDocID
+         put empty into pFunk
+         break
+      case "view"
+         set itemdel to "/"
+         put item 1 of pDocID into pDesign
+         put item 2 of pDocID into pView
+         put "_design/" & pDesign & "/_view/" & pView into pDocID
+         put empty into pFunk
+         break
+      default
+         put "_" before pFunk
+         break
+   end switch
+   		
+   couch.setHeaders pOptions
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   put URL(tURL) into tResult
+   return returnFormat(tResult,pFormat)
 end couch.get
 
 function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
-    -----
-    local tURL, tResult
-    -----
-	if pDoc["_id"] is empty then
-		put uuid() into pDoc["_id"]
-	end if
-	switch pFunk
-		case "db"
-			put empty into pDoc
-		case "doc"
-			put empty into pFunk
-				put pDoc["_id"] into pDocID
-			break
-		default
-			put "_" before pFunk
-			break
-	end switch
-	couch.setHeaders pOptions
-	put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-	put jsonFromArray(pDoc) into URL(tURL)
-	put the urlResponse into tResult
-	return returnFormat(tResult,pFormat)
+   -----
+   local tURL, tResult
+   -----
+   if pDoc["_id"] is empty then
+      put uuid() into pDoc["_id"]
+   end if
+   switch pFunk
+      case "db"
+         put empty into pDoc
+      case "doc"
+         put empty into pFunk
+         put pDoc["_id"] into pDocID
+         break
+      case "design"
+         put pDoc["_id"] into pDocID
+         put "_design/" before pDocID
+         put empty into pFunk
+         break
+      default
+         put "_" before pFunk
+         break
+   end switch
+   couch.setHeaders pOptions
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   put jsonFromArray(pDoc) into URL(tURL)
+   put the urlResponse into tResult
+   return returnFormat(tResult,pFormat)
 end couch.put
 
 function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
@@ -120,7 +125,7 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
     local tURL, tResult
     -----
   switch pFunk
-		case "doc"
+		case "db"
 			put empty into pFunk
 			break
 		default
@@ -130,6 +135,7 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
 	
   couch.setHeaders pOptions
 	put couch.DBURL(pURL,pDB,pParams,pFunk) into tURL
+	put "[" & pDoc &"]" into pDoc
 	post pDoc to URL(tURL)
 	put the urlResponse into tResult
 	return returnFormat(tResult,pFormat)
@@ -210,7 +216,7 @@ function returnFormat pResult pFormat
   local tFormat
   -----
 
-   if pFormat is empty then put "prettyjson" into pFormat
+   if pFormat is empty then put "array" into pFormat
    switch pFormat
       case "array"
          return arrayFromJson(pResult)
