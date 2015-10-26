@@ -40,7 +40,7 @@ GET /_log	Returns the server log file
      
 /_replicate	
 POST /_replicate	Starts or cancels the replication
-      -----NOT TESTED
+      -----NOT WORKING
 
 /_restart	
 POST /_restart	Restarts the server
@@ -73,7 +73,7 @@ GET /{db}	Returns the database information
      put "testdb" into tDB
      put couch.get(db,tURL,tDB) 
 POST /{db}	Creates a new document with generic ID if he had not specified
-      -----NOT TESTED
+      -----NOT WORKING
 PUT /{db}	Creates a new database
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
@@ -192,7 +192,17 @@ DESIGN DOCUMENT API
 
 /{db}/_design/{ddoc}	
 GET /{db}/_design/{ddoc}	Returns the design document
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "testdoc" into tDocID
+     put couch.get(design,tURL,tDB,tDocID)
 PUT /{db}/_design/{ddoc}	Creates a new design document, or new version of an existing one
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "testdoc2" into pDoc["_id"]
+     put "javascript" into pDoc["language"]
+     put "function(doc) {"&cr&"  emit(null, doc);"&cr&"}" into pDoc["views"]["myquery"]["map"]
+     put couch.put(design,tURL,tDB,pDoc)
 DELETE /{db}/_design/{ddoc}	Deletes the design document
  	
 /{db}/_design/{ddoc}/_info	
@@ -225,8 +235,12 @@ PUT /{db}/_design/{ddoc}/_update/{func}/{docid}	Executes an update function agai
  	
 /{db}/_design/{ddoc}/_view/{view}	
 GET /{db}/_design/{ddoc}/_view/{view}	Returns results for the specified stored view
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put couch.post(purge,tURL,tDB)
 POST /{db}/_design/{ddoc}/_view/{view}	Returns certain rows for the specified stored view
- 	
+      -----NOT TESTED
+
 /{db}/_design/{ddoc}/{attname}	
 GET /{db}/_design/{ddoc}/{attname}	Gets the attachment of a design document
 PUT /{db}/_design/{ddoc}/{attname}	Adds an attachment of a design document
