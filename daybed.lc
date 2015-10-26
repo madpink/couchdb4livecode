@@ -1,8 +1,7 @@
 <?lc
-
 /*
 
-Daybed - A Library for Apache CouchDB  version: 0.2.45    October 26, 2015
+Daybed - A Library for Apache CouchDB  version: 0.2.53    October 26, 2015
 
 contact:   pink@mad.pink (aka Greg Miller)
 
@@ -123,11 +122,15 @@ end couch.put
 
 function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
      -----
-     local tURL, tResult
+     local tURL, tResult, tJson
      -----
      switch pFunk
           case "db"
                put empty into pFunk
+               break
+          case "compactdesign"
+               put "_compact" into pFunk
+               put pDoc into pDocID
                break
           default
                put "_" before pFunk
@@ -135,15 +138,22 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
      end switch
      	
      couch.setHeaders pOptions
-     put couch.DBURL(pURL,pDB,pParams,pFunk) into tURL
      switch pFunk
           case "_bulk_docs"
                put pDoc into revisedDoc["docs"]
+               put jsonFromArray(revisedDoc) into tJson
+               break
+          case "_changes"
+               put couch.simplearray("doc_ids",pDoc) into tJson
+               put "_doc_ids" into pParams["filter"]
+               break
+          case "_all_docs"
+               put couch.simplearray("keys",pDoc) into tJson
                break
           default
-               put pDoc into revisedDoc
+               put jsonFromArray(pDoc) into tJson
      end switch
-     put jsonFromArray(revisedDoc) into tJson
+     put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
      post tJson to URL(tURL)
      put the urlResponse into tResult
      return returnFormat(tResult,pFormat)
@@ -218,6 +228,21 @@ function couch.parseParams pParamArray
      end repeat
      return tParamString
 end couch.parseParams
+
+function couch.simplearray pKey pDoc
+     -----
+     local tJson
+     -----
+
+     put the number of lines in the keys of pDoc into tCount
+     put "{" & quote & pKey & quote & colon & " [" into tJson
+     repeat with x=1 to tCount
+          put quote & pDoc[x] & quote after tJson
+          if x<tCount then put comma after tJson
+     end repeat
+     put "]  }" after tJson
+     return tJson
+end couch.simplearray
 
 function returnFormat pResult pFormat
   -----
