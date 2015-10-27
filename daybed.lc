@@ -46,8 +46,8 @@ https://github.com/bhall2001/fastjson
 https://github.com/luxlogica/easyjson
 
 TO-DO:
---Design and view documents need to be updated
 --need to add attachments
+--need to implement replicator
 --offline syncable database
 --need to upload DayBed Toolbox
 */
