@@ -1,7 +1,6 @@
 <?lc
 /*
-
-Daybed - A Library for Apache CouchDB  version: 0.2.53    October 26, 2015
+Daybed - A Library for Apache CouchDB  version: 0.3.61    October 27, 2015
 
 contact:   pink@mad.pink (aka Greg Miller)
 
@@ -37,7 +36,7 @@ For example:  to download documents when running the _all_docs function, and lim
      put true into tParams["include_docs"]
      put 10 into tParams["limit"]
 
-pOptions - (optional) header options, including user and pass (see "Authentication")
+pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
 
 pFormat - (optional) by default, an array is returned unless "rawjson"  or "prettyjson" is specified
       --don't panic
@@ -72,6 +71,13 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
          put "_design/" before pDocID
          put empty into pFunk
          break
+      case "config"
+         put "_" before pFunk
+         put pOptions["section"] into pDocID
+         if pOptions["key"] is not empty then
+            put slash & pOptions["key"] after pDocID
+         end if
+         break
       case "view"
          set itemdel to "/"
          put item 1 of pDocID into pDesign
@@ -92,11 +98,9 @@ end couch.get
 
 function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
    -----
-   local tURL, tResult
+   local tURL, tResult, tRaw
    -----
-   if pDoc["_id"] is empty then
-      put uuid() into pDoc["_id"]
-   end if
+   
    switch pFunk
       case "db"
          put empty into pDoc
@@ -109,54 +113,62 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
          put "_design/" before pDocID
          put empty into pFunk
          break
+      case "config"
+         put "_" before pFunk
+         put pOptions["section"] into pDocID
+         if pOptions["key"] is not empty then
+            put slash & pOptions["key"] after pDocID
+         end if
+         break
       default
          put "_" before pFunk
          break
    end switch
    couch.setHeaders pOptions
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-   put jsonFromArray(pDoc) into URL(tURL)
+   switch pFunk
+      case "_config"
+         put quote & pOptions["value"] & quote into pDoc
+         put pDoc into URL(tURL)
+         break
+      case "_revs_limit"
+         put pDoc into URL(tURL)
+         break
+      default
+         put jsonFromArray(pDoc) into tJson
+         put tJson into URL(tURL)
+         break
+   end switch
    put the urlResponse into tResult
    return returnFormat(tResult,pFormat)
 end couch.put
 
 function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
-     -----
-     local tURL, tResult, tJson
-     -----
-     switch pFunk
-          case "db"
-               put empty into pFunk
-               break
-          case "compactdesign"
-               put "_compact" into pFunk
-               put pDoc into pDocID
-               break
-          default
-               put "_" before pFunk
-               break
-     end switch
-     	
-     couch.setHeaders pOptions
-     switch pFunk
-          case "_bulk_docs"
-               put pDoc into revisedDoc["docs"]
-               put jsonFromArray(revisedDoc) into tJson
-               break
-          case "_changes"
-               put couch.simplearray("doc_ids",pDoc) into tJson
-               put "_doc_ids" into pParams["filter"]
-               break
-          case "_all_docs"
-               put couch.simplearray("keys",pDoc) into tJson
-               break
-          default
-               put jsonFromArray(pDoc) into tJson
-     end switch
-     put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-     post tJson to URL(tURL)
-     put the urlResponse into tResult
-     return returnFormat(tResult,pFormat)
+   -----
+   local tURL, tResult, tJson
+   -----
+   switch pFunk
+      case "db"
+         put empty into pFunk
+         break
+      case "changes"
+         put "_doc_ids" into pParams["filter"]
+         break
+      case "compactdesign"
+         put "_compact" into pFunk
+         put pDoc into pDocID
+         break
+      default
+         put "_" before pFunk
+         break
+   end switch
+   	
+   couch.setHeaders pOptions
+   put jsonFromArray(pDoc) into tJson
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   post tJson to URL(tURL)
+   put the urlResponse into tResult
+   return returnFormat(tResult,pFormat)
 end couch.post
 	
 function couch.delete pFunk pURL pDB pDocID pParams pOptions pFormat
@@ -182,6 +194,20 @@ end couch.delete
 
 on ___CouchDB_Builder___
 end ___CouchDB_Builder___
+
+function couch.simplearray pKey pDoc
+     local tJson
+     
+     put the number of lines in the keys of pDoc into tCount
+     put "{"&quote&pKey&quote&colon&" [" into tJson
+     repeat with x=1 to tCount
+          put quote & pDoc[x] & quote after tJson
+          if x<tCount then put comma after tJson
+     end repeat
+     put "]  }" after tJson
+     return tJson
+end couch.simplearray
+
 
 command couch.setHeaders pOptions
    local couchHeaders,tUser,tPass
@@ -228,21 +254,6 @@ function couch.parseParams pParamArray
      end repeat
      return tParamString
 end couch.parseParams
-
-function couch.simplearray pKey pDoc
-     -----
-     local tJson
-     -----
-
-     put the number of lines in the keys of pDoc into tCount
-     put "{" & quote & pKey & quote & colon & " [" into tJson
-     repeat with x=1 to tCount
-          put quote & pDoc[x] & quote after tJson
-          if x<tCount then put comma after tJson
-     end repeat
-     put "]  }" after tJson
-     return tJson
-end couch.simplearray
 
 function returnFormat pResult pFormat
   -----
