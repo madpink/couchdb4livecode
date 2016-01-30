@@ -192,6 +192,26 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions pFormat
 	return returnFormat(tResult,pFormat)
 end couch.delete
 
+function couch.adduser pURL pUsername pPassword pType pRoles
+   -----
+   local tURL, tResult, tJSON
+   -----
+   put pUsername into pName
+   put "org.couchdb.user:" before pUsername
+   put "{" & keyVal("name",pName) && "," && keyVal("password",pPassword) && "," into tJSON
+   if pType is empty then put "user" into pType
+   put keyVal("type",pType) && "," after tJSON
+   if pRoles is empty then 
+      put quote & "roles" & quote && colon && "[] }" after tJSON
+   else
+      put quote & "roles" & quote && colon && "[" & pRoles & "] }" after tJSON
+   end if
+   put couch.DBURL(pURL,"_users",,,pUsername) into tURL
+   put tJson into URL(tURL)
+   put the urlResponse into tResult
+   return returnFormat(tResult,pFormat)
+end couch.addUser
+
 on ___CouchDB_Builder___
 end ___CouchDB_Builder___
 
@@ -382,6 +402,14 @@ function gingerJson pJson
    end repeat
    return tPretty
 end gingerJson
+
+function keyVal pKey pVal
+   -----
+   local tReturn
+   -----
+   put quote & pKey & quote && colon && quote & pVal & quote into tReturn
+   return tReturn
+end keyVal  
 	 
 function tabCount pCount
    repeat with x = 1 to pCount
