@@ -1,50 +1,52 @@
-<?lc
-/*
-Daybed - A Library for Apache CouchDB  version: 0.3.61    October 27, 2015
-
+/*	
+Daybed - A Library for Apache CouchDB  version: 0.4.68    January 31, 2016
+	
 contact:   pink@mad.pink (aka Greg Miller)
-
+	
 This is a simple library that calls CouchDB's REST functions and then decodes them using EasyJSON.
-
+	
 Authentication: if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
 Option 1: include the username and password as part of the URL, for example:
-	"http://admin:passw0rd@192.168.0.42:5984/"
-
+"http://admin:passw0rd@192.168.0.42:5984/"
+	
 Option 2: use the pOptions parameter, and the script will encode the username and password into the httpheaders:
-    put "admin" into pOptions["user"]
-		put "passw0rd" into pOptions["pass"]
-
+put "admin" into pOptions["user"]
+put "passw0rd" into pOptions["pass"]
+	
 pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
-
+	
 pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
 For example:   "http://192.168.23.42:5984/"
 With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
-             --fnord--
+
+--fnord--
+
 pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
 
 pDocID - (required for most get functions) the document "_id" being retrieved
-    for design documents, use the pDocID param to specify it
-		for selecting a view from a design document, add a slash with the view name to pDocID, for example:
-			for the following view call /_design/querymon/_view/phone
-			put querymon/phone into pDocID
-		
+for design documents, use the pDocID param to specify it
+for selecting a view from a design document, add a slash with the view name to pDocID, for example:
+for the following view call /_design/querymon/_view/phone
+put querymon/phone into pDocID
+			
 pDoc - (required for most put and post functions) array containing the data being converted into a document for the database
-
+	
 pParams - an array with any OPTIONAL parameters, with the parameter as a key.
 For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
-     put true into tParams["include_docs"]
-     put 10 into tParams["limit"]
-
+put true into tParams["include_docs"]
+put 10 into tParams["limit"]
+	
 pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
+	
+--don't panic
 
 pFormat - (optional) by default, an array is returned unless "rawjson"  or "prettyjson" is specified
-      --don't panic
-
+	
 NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
 https://github.com/bhall2001/fastjson
 https://github.com/luxlogica/easyjson
-
+	
 TO-DO:
 --need to add attachments
 --need to implement replicator
@@ -89,7 +91,7 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
          put "_" before pFunk
          break
    end switch
-   		
+   	   		
    couch.setHeaders pOptions
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
    put URL(tURL) into tResult
@@ -100,7 +102,7 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
    -----
    local tURL, tResult, tRaw
    -----
-   
+   	   
    switch pFunk
       case "db"
          put empty into pDoc
@@ -142,7 +144,7 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
    put the urlResponse into tResult
    return returnFormat(tResult,pFormat)
 end couch.put
-
+	
 function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
    -----
    local tURL, tResult, tJson
@@ -162,7 +164,7 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
          put "_" before pFunk
          break
    end switch
-   	
+   	   	
    couch.setHeaders pOptions
    put jsonFromArray(pDoc) into tJson
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
@@ -170,116 +172,114 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
    put the urlResponse into tResult
    return returnFormat(tResult,pFormat)
 end couch.post
-	
+		
 function couch.delete pFunk pURL pDB pDocID pParams pOptions pFormat
-    -----
-    local tURL, tResult
-    -----
-	switch pFunk
-		case "db"
-			put empty into pDoc
-		case "doc"
-			put empty into pFunk
-			break
-		default
-			put "_" before pFunk
-			break
-	end switch
-	couch.setHeaders
-	put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-	delete URL(tURL)
-	put the urlResponse into tResult
-	return returnFormat(tResult,pFormat)
+   -----
+   local tURL, tResult
+   -----
+   switch pFunk
+      case "db"
+         put empty into pDoc
+      case "doc"
+         put empty into pFunk
+         break
+      default
+         put "_" before pFunk
+         break
+   end switch
+   couch.setHeaders
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   delete URL(tURL)
+   put the urlResponse into tResult
+   return returnFormat(tResult,pFormat)
 end couch.delete
-
-function couch.adduser pURL pUsername pPassword pType pRoles
+   
+function couch.adduser pURL pUsername pPassword pRoles pFormat
    -----
    local tURL, tResult, tJSON
    -----
-   put pUsername into pName
-   put "org.couchdb.user:" before pUsername
-   put "{" & keyVal("name",pName) && "," && keyVal("password",pPassword) && "," into tJSON
-   if pType is empty then put "user" into pType
-   put keyVal("type",pType) && "," after tJSON
+   put "{" into tJSON
+   put quote & "name" & quote && colon && quote & pUsername & quote && ", " after tJSON
+   put quote & "password" & quote && colon && quote & pPassword & quote && ", " after tJSON
+   put quote & "type" & quote && colon && quote & "user" & quote && ", " after tJSON
    if pRoles is empty then 
       put quote & "roles" & quote && colon && "[] }" after tJSON
    else
       put quote & "roles" & quote && colon && "[" & pRoles & "] }" after tJSON
    end if
+   put "org.couchdb.user:" before pUsername
    put couch.DBURL(pURL,"_users",,,pUsername) into tURL
    put tJson into URL(tURL)
    put the urlResponse into tResult
    return returnFormat(tResult,pFormat)
 end couch.addUser
-
+   
 on ___CouchDB_Builder___
 end ___CouchDB_Builder___
-
+	
 function couch.simplearray pKey pDoc
-     local tJson
-     
-     put the number of lines in the keys of pDoc into tCount
-     put "{"&quote&pKey&quote&colon&" [" into tJson
-     repeat with x=1 to tCount
-          put quote & pDoc[x] & quote after tJson
-          if x<tCount then put comma after tJson
-     end repeat
-     put "]  }" after tJson
-     return tJson
+   local tJson
+   	     
+   put the number of lines in the keys of pDoc into tCount
+   put "{"&quote&pKey&quote&colon&" [" into tJson
+   repeat with x=1 to tCount
+      put quote & pDoc[x] & quote after tJson
+      if x<tCount then put comma after tJson
+   end repeat
+   put "]  }" after tJson
+   return tJson
 end couch.simplearray
-
 
 command couch.setHeaders pOptions
    local couchHeaders,tUser,tPass
    put "Accept: application/json, text/plain, text/event-stream"&cr into couchHeaders
    put "Content-Type: application/json" after couchHeaders
    if pOptions is not empty then
-   	  put pOptions["user"] into tUser
-	  put pOptions["pass"] into tPass
-      put "Authorization: Basic"& base64encode(tUser & colon & tPass) & cr before couchHeaders
+      put pOptions["user"] into tUser
+      put pOptions["pass"] into tPass
+      put "Authorization: Basic"&& base64encode(tUser & colon & tPass) & cr before couchHeaders
    end if
    set the httpheaders to couchHeaders
 end couch.setHeaders
 
 function couch.DBURL pURL pDB pParams pFunk pDocID
-  -----
-  local tURL
-  -----
-     if char 1 to 4 of pURL is not "http" then put "http://" before pURL
-     if char -1 of pURL is not slash then
-  		 put pURL & slash into tURL
-		 else
-			 put pURL into tURL
-		 end if
-     if pDB is not empty then put pDB after tURL
-     if pDB is not empty and pFunk is not empty then put slash after tURL
-     if pFunk is not empty then put pFunk after tURL
-     if pFunk is not empty and pDocID is not empty then put slash after tURL
-     if pFunk is empty and pDocID is not empty and pDB is not empty then put slash after tURL
-     if pDocID is not empty then put pDocID after tURL
-     if pParams is not empty then put couch.parseParams(pParams) after tURL
-     return tURL
+   -----
+   local tURL
+   -----
+   if char 1 to 4 of pURL is not "http" then put "http://" before pURL
+   if char -1 of pURL is not slash then
+      put pURL & slash into tURL
+   else
+      put pURL into tURL
+   end if
+   if pDB is not empty then put pDB after tURL
+   if pDB is not empty and pFunk is not empty then put slash after tURL
+   if pFunk is not empty then put pFunk after tURL
+   if pFunk is not empty and pDocID is not empty then put slash after tURL
+   if pFunk is empty and pDocID is not empty and pDB is not empty then put slash after tURL
+   if pDocID is not empty then put pDocID after tURL
+   if pParams is not empty then put couch.parseParams(pParams) after tURL
+   return tURL
 end couch.DBURL
-
+	
 function couch.parseParams pParamArray
-  -----
-  local tParamString
-  -----
-     if tParamArray is empty then return empty
-     put "?" into tParamString
-     repeat for each key x in pParamArray
-          put x & "=" & pParamArray[x] after tParamString
-          if x = the paramCount then exit repeat
-          put "&" after tParamString
-     end repeat
-     return tParamString
+   -----
+   local tParamString
+   -----
+   if tParamArray is empty then return empty
+   put "?" into tParamString
+   repeat for each key x in pParamArray
+      put x & "=" & pParamArray[x] after tParamString
+      if x = the paramCount then exit repeat
+      put "&" after tParamString
+   end repeat
+   return tParamString
 end couch.parseParams
-
+	
 function returnFormat pResult pFormat
-  -----
-  local tFormat
-  -----
-
+   -----
+   local tFormat
+   -----
    if pFormat is empty then put "array" into pFormat
    switch pFormat
       case "array"
@@ -294,14 +294,21 @@ function returnFormat pResult pFormat
    end switch
 end returnFormat
 
+	
 on ___Daybed_DB_Local___
 end ___Daybed_DB_Local___
 
-function convertParams pParam
-  -----
-  local temp
-  -----
+function couchperuserDB pUsername
+   ----- 
+   put binaryDecode("H*",pUsername,tDBName) into temp
+   put "user_" before tDBName
+   return tDBName
+end couchperuserDB
 
+function convertParams pParam
+   -----
+   local temp
+   -----
    put pParam into temp
    if temp is empty then return empty
    split temp by return and tab
@@ -311,10 +318,12 @@ function convertParams pParam
    return temp
 end convertParams
 
+	
 /*
 GINGER JSON - FOR REFORMATTING JSON INTO A PRETTIER FORMAT
 */
 
+	
 function gingerJson pJson
    put 0 into tLevel
    put 0 into tMaxLevel
@@ -396,30 +405,22 @@ function gingerJson pJson
       end switch		
       if tLevel > tMaxLevel then put tLevel into tMaxLevel
    end repeat
-   
+   	   
    repeat with x=1 to tMaxLevel
       replace cr&tabCount(x)&cr with cr in tPretty
    end repeat
    return tPretty
 end gingerJson
-
-function keyVal pKey pVal
-   -----
-   local tReturn
-   -----
-   put quote & pKey & quote && colon && quote & pVal & quote into tReturn
-   return tReturn
-end keyVal  
-	 
+		 
 function tabCount pCount
    repeat with x = 1 to pCount
       put tab after tReturn
    end repeat
    return tReturn
 end tabCount
-
+	
 function snapJson pJson
    replace tab with empty in pJson
    replace cr with empty in pJson
    return pJson
- end snapJson
+end snapJson
