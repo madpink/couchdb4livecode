@@ -16,13 +16,6 @@ The couch.post function inserts multiple documents or values into a database.
 The couch.delete function deletes a document or database, or a config key.
 Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
 
-      couch.adduser(pURL,pUsername,pPassword,pRoles)
-The couch.adduser function inserts a new record into the "_users" database.
-pUsername - Username of the person signing up.
-pPassword - Password for the account
-pRoles (optional) - roles to assign to the user
-Note:  only an admin can create a user
-
 pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
 		a list is included below of functions that have been tested
 		there are four categories of functions:  system, database, document, design document
@@ -52,8 +45,20 @@ pParams - an array with any OPTIONAL parameters, with the parameter as a key.
 
 pOptions - header options, including user and pass (see "Authentication"), also used in "config" operations
 
-pFormat - (optional) by default, an array is returned unless "rawjson"  or "prettyjson" is specified
+pFormat - (optional) "array", "rawjson" or "prettyjson"
+if the stack has a customProperty called "preferredFormat" with one of the above three values, then it will be used
+by default if pFormat is left blank, otherwise "array" will be used
 
+      couch.adduser(pURL,pUsername,pPassword,pRoles)
+The couch.adduser function inserts a new record into the "_users" database.
+pUsername - Username of the person signing up.
+pPassword - Password for the account
+pRoles (optional) - roles to assign to the user
+Note:  only an admin can create a user
+
+      couch.peruserDB(pUsername)
+Requires "couchperuser" to be installed (https://github.com/etrepum/couchperuser)
+The couch.peruserDB function returns the database name associated with the username specified.
 
 Authentication: if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
@@ -62,7 +67,7 @@ Option 1: include the username and password as part of the URL, for example:
 
 Option 2: use the pOptions parameter, and the script will encode the username and password into the httpheaders:
     put "admin" into pOptions["user"]
-		put "passw0rd" into pOptions["pass"]
+	 put "passw0rd" into pOptions["pass"]
 
 
 FUNCTIONS (pFunk)
