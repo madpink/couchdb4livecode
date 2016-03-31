@@ -69,6 +69,9 @@ Option 2: use the pOptions parameter, and the script will encode the username an
     put "admin" into pOptions["user"]
 	 put "passw0rd" into pOptions["pass"]
 
+NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
+https://github.com/bhall2001/fastjson
+https://github.com/luxlogica/easyjson
 
 FUNCTIONS (pFunk)
 
