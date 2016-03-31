@@ -1,6 +1,6 @@
-/*	
-Daybed - A Library for Apache CouchDB  version: 0.4.68    January 31, 2016
-	
+<?lc    /*	  
+Daybed - A Library for Apache CouchDB  version: 0.5.74   March 30, 2016
+
 contact:   pink@mad.pink (aka Greg Miller)
 	
 This is a simple library that calls CouchDB's REST functions and then decodes them using EasyJSON.
@@ -9,13 +9,13 @@ Authentication: if the CouchDB URL requires authentication, it can be achieved i
 
 Option 1: include the username and password as part of the URL, for example:
 "http://admin:passw0rd@192.168.0.42:5984/"
-	
+
 Option 2: use the pOptions parameter, and the script will encode the username and password into the httpheaders:
 put "admin" into pOptions["user"]
 put "passw0rd" into pOptions["pass"]
-	
+
 pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
-	
+
 pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
 For example:   "http://192.168.23.42:5984/"
 With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
@@ -31,22 +31,29 @@ for the following view call /_design/querymon/_view/phone
 put querymon/phone into pDocID
 			
 pDoc - (required for most put and post functions) array containing the data being converted into a document for the database
-	
+
 pParams - an array with any OPTIONAL parameters, with the parameter as a key.
 For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
 put true into tParams["include_docs"]
 put 10 into tParams["limit"]
-	
+
 pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
-	
+
 --don't panic
 
-pFormat - (optional) by default, an array is returned unless "rawjson"  or "prettyjson" is specified
-	
+pFormat - (optional) "array", "rawjson" or "prettyjson" for the return format
+the stack can have a customProperty called "preferredFormat" which can be one of those three values,
+if pFormat is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
+
+couch.adduser is for creating a new user in the "_users" database
+
+if you have "couchperuser" installed (https://github.com/etrepum/couchperuser) then use the 
+couch.peruserDB function to find the database name assoc
+
 NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
 https://github.com/bhall2001/fastjson
 https://github.com/luxlogica/easyjson
-	
+
 TO-DO:
 --need to add attachments
 --need to implement replicator
@@ -54,6 +61,7 @@ TO-DO:
 --need to upload DayBed Toolbox
 */
 
+	
 function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
    -----
    local tURL, tResult
@@ -98,6 +106,7 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
    return returnFormat(tResult,pFormat)
 end couch.get
 
+	
 function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
    -----
    local tURL, tResult, tRaw
@@ -122,6 +131,12 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
             put slash & pOptions["key"] after pDocID
          end if
          break
+      case "users"
+         put "org.couchdb.user:" & pDoc["name"] into pDocID
+         put pDocId into pDoc["_id"]
+         put "_users" into pDB
+         put empty into pFunk
+         break
       default
          put "_" before pFunk
          break
@@ -137,13 +152,15 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
          put pDoc into URL(tURL)
          break
       default
-         put jsonFromArray(pDoc) into tJson
+         put a2j(pDoc) into tJson
+         replace "[null]" with "[]" in tJson
          put tJson into URL(tURL)
          break
    end switch
    put the urlResponse into tResult
    return returnFormat(tResult,pFormat)
 end couch.put
+
 	
 function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
    -----
@@ -166,7 +183,7 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
    end switch
    	   	
    couch.setHeaders pOptions
-   put jsonFromArray(pDoc) into tJson
+   put a2j(pDoc) into tJson
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
    post tJson to URL(tURL)
    put the urlResponse into tResult
@@ -199,23 +216,33 @@ function couch.adduser pURL pUsername pPassword pRoles pFormat
    local tURL, tResult, tJSON
    -----
    put "{" into tJSON
-   put quote & "name" & quote && colon && quote & pUsername & quote && ", " after tJSON
-   put quote & "password" & quote && colon && quote & pPassword & quote && ", " after tJSON
-   put quote & "type" & quote && colon && quote & "user" & quote && ", " after tJSON
+   put keyVal("name",pUsername)&comma after tJSON
+   put keyVal("password",pPassword)&comma after tJSON
+   put keyVal("type","user")&comma after tJSON
+   
    if pRoles is empty then 
-      put quote & "roles" & quote && colon && "[] }" after tJSON
+      put quote & "roles" & quote & colon & "[]}" after tJSON
    else
-      put quote & "roles" & quote && colon && "[" & pRoles & "] }" after tJSON
+      put quote & "roles" & quote & colon & "[" & pRoles & "]}" after tJSON
    end if
+   
    put "org.couchdb.user:" before pUsername
    put couch.DBURL(pURL,"_users",,,pUsername) into tURL
-   put tJson into URL(tURL)
+   put tJSON into URL(tURL)
    put the urlResponse into tResult
    return returnFormat(tResult,pFormat)
 end couch.addUser
-   
+
+function couch.peruserDB pUsername
+   ---requires "couchperuser" daemon to be installed
+   put binaryDecode("H*",pUsername,tDBName) into temp
+   put "user_" before tDBName
+   return tDBName
+end couch.peruserDB
+
 on ___CouchDB_Builder___
 end ___CouchDB_Builder___
+
 	
 function couch.simplearray pKey pDoc
    local tJson
@@ -261,6 +288,7 @@ function couch.DBURL pURL pDB pParams pFunk pDocID
    if pParams is not empty then put couch.parseParams(pParams) after tURL
    return tURL
 end couch.DBURL
+
 	
 function couch.parseParams pParamArray
    -----
@@ -275,17 +303,27 @@ function couch.parseParams pParamArray
    end repeat
    return tParamString
 end couch.parseParams
+
 	
 function returnFormat pResult pFormat
    -----
    local tFormat
    -----
-   if pFormat is empty then put "array" into pFormat
+   if pFormat is empty then 
+      put the preferredFormat of this stack into tForm
+      if tForm is empty then
+         put "array" into pFormat
+      else
+         put tForm into pFormat
+      end if
+   end if
+   
    switch pFormat
       case "array"
-         return arrayFromJson(pResult)
+         return j2a(pResult)
          break
       case "rawjson"
+      case "json"
          return pResult
          break
       case "prettyjson"
@@ -294,16 +332,32 @@ function returnFormat pResult pFormat
    end switch
 end returnFormat
 
-	
-on ___Daybed_DB_Local___
-end ___Daybed_DB_Local___
+on ___Misc_Functions___
+end ___Misc_Functions___
 
-function couchperuserDB pUsername
-   ----- 
-   put binaryDecode("H*",pUsername,tDBName) into temp
-   put "user_" before tDBName
-   return tDBName
-end couchperuserDB
+function j2a pJson asUnicode pSkipValidation
+   --if easyJson is being used instead of fastJson then
+   ----don't include values for asUnicode or pSkipValidation
+   put "{"&quote&1&quote&":null}" into tEmpty
+   replace "[]" with tEmpty in pJson
+   put jsonToArray(pJson, asUnicode, pSkipValidation) into tArray
+end j2a
+
+function a2j pArray keepNumeric
+   --if easyJson is being used instead of fastJson then
+   ----don't include values for keepNumeric
+   put arrayToJson(pArray,keepNumeric) into tJson
+   replace "[null]" with "[]" in tJson
+   return tJson
+end a2j
+
+function keyVal pKey pVal
+   -----
+   local tReturn
+   -----
+   put quote & pKey & quote & colon & quote & pVal & quote into tReturn
+   return tReturn
+end keyVal  
 
 function convertParams pParam
    -----
@@ -318,12 +372,9 @@ function convertParams pParam
    return temp
 end convertParams
 
-	
-/*
-GINGER JSON - FOR REFORMATTING JSON INTO A PRETTIER FORMAT
-*/
+on ___Prettify_JSON___
+end ___Prettify_JSON___
 
-	
 function gingerJson pJson
    put 0 into tLevel
    put 0 into tMaxLevel
