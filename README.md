@@ -3,45 +3,44 @@ Daybed - A Library for Apache CouchDB
 
 Functions:
 
-      couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)
+`couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
 * The couch.get function retrives a document, multiple documents, or information.
 
-      couch.put(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)
+`couch.put(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
 * The couch.put function inserts a value or a document into a database.
 
-      couch.post(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)
+`couch.post(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
 * The couch.post function inserts multiple documents or values into a database.
 
-      couch.delete(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)
+`couch.delete(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
 * The couch.delete function deletes a document or database, or a config key.
-   * Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
+	* Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
 
 * pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
-		a list is included below of functions that have been tested
-		there are four categories of functions:  system, database, document, design document
+	* a list is included below of functions that have been tested
+	* there are four categories of functions:  system, database, document, design document
 
 * pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
-		For example:   "http://192.168.23.42:5984/"
-		With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
+	* For example:   "http://192.168.23.42:5984/"
+	* With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
 
 * pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
-		should be blank for system functions, must be included for database, document, and design document
+	* should be blank for system functions, must be included for database, document, and design document
 		
 * pDocID - (for get and delete functions) the document "_id" being retrieved
-		should be blank for system and database functions, must be included for document and design document 
-    for design documents, use the pDocID param to specify it
-		for selecting a view from a design document, add a slash with the view name to pDocID, for example:
-			for the following view call /_design/querymon/_view/phone
-			put querymon/phone into pDocID
+	* should be blank for system and database functions, must be included for document and design document 
+	* for design documents, use the pDocID param to specify it
+		* for selecting a view from a design document, add a slash with the view name to pDocID, for example: for the following view call /_design/querymon/_view/phone
+			* put "querymon/phone" into pDocID
 		
 * pDoc - (for put and post functions) array containing the data being converted into a document for the database
-		should be blank for system functions, must be included in document and design document (also used in a db function)
+	* should be blank for system functions, must be included in document and design document (also used in a db function)
 
 * pParams - an array with any OPTIONAL parameters, with the parameter as a key.
-		These parameters are specified in the CouchDB API
-		For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
-     put true into tParams["include_docs"]
-     put 10 into tParams["limit"]
+	* These parameters are specified in the CouchDB API
+	* For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
+		`put true into tParams["include_docs"]`
+     		`put 10 into tParams["limit"]`
 
 * pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
 also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
