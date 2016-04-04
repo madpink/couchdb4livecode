@@ -3,16 +3,16 @@ Daybed - A Library for Apache CouchDB
 
 Functions:
 
-`couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
+#####`couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
 * The couch.get function retrives a document, multiple documents, or information.
 
-`couch.put(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
+#####`couch.put(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
 * The couch.put function inserts a value or a document into a database.
 
-`couch.post(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
+#####`couch.post(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
 * The couch.post function inserts multiple documents or values into a database.
 
-`couch.delete(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
+#####`couch.delete(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
 * The couch.delete function deletes a document or database, or a config key.
 	* Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
 
@@ -49,7 +49,7 @@ also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for 
 the stack can have a customProperty called "preferredFormat" which can be one of those three values,
 if pOptions["format"] is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
 
-      couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)
+#####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
 The couch.securedb function sets the "_security" document for the specified database.
 pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
 * pAdminNames - sets the given names up with admin rights (read,write,delete)
@@ -57,7 +57,7 @@ pFunk - "set" (replace current security), "add" adds user/roles to existing secu
 * pMemberNames - sets the given names up with member rights (read only)
 * pMemberRoles - sets the given user roles up with member rights (read only)
 
-      couch.adduserdb(pURL,pUser,pPass,pOptions)
+#####`couch.adduserdb(pURL,pUser,pPass,pOptions)`
 The couch.adduser function inserts a new record into the "_users" database, creates a database for the user, and 
 sets the new user as the admin and member (which makes that user the only one who can access it).
 * pUsername - Username of the person signing up.
@@ -65,30 +65,30 @@ sets the new user as the admin and member (which makes that user the only one wh
 * pOptions["roles"] - can be used to assign the user to roles, must be in a numbered array
 * Note:  only an admin can create a user
 
-      couch.peruserDB(pUsername)
+#####`couch.peruserDB(pUsername)`
 Requires "couchperuser" to be installed (https://github.com/etrepum/couchperuser)
 The couch.peruserDB function returns the database name associated with the username specified.
 
 Authentication: if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
 Option 1: include the username and password as part of the URL, for example:
-"http://admin:passw0rd@192.168.0.42:5984/"
+	* "http://admin:passw0rd@192.168.0.42:5984/"
 
 Option 2: use the pOptions parameter, and the script will encode the username and password into the httpheaders:
-put "admin" into pOptions["user"]
-put "passw0rd" into pOptions["pass"]
+	* put "admin" into pOptions["user"]
+	* put "passw0rd" into pOptions["pass"]
 
 Option 3: use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
-for example, put base64encode("username:password") will yield the string below:
-put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["userpasscode"]
+	* for example, put base64encode("username:password") will yield the string below:
+	* put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["userpasscode"]
 
 Option 4: use cookies/sessions... 
 First  get cookie by posting username and password to sessions
-   put "admin" into pDoc["name"]     
-   put "passw0rd" into pDoc["password"]
-   put couch.post("session",tURL,,pDoc) into theCookie
+	* put "admin" into pDoc["name"]     
+	* put "passw0rd" into pDoc["password"]
+   	* put couch.post("session",tURL,,pDoc) into theCookie
 Store it somewhere. For each subsequent call, send theCookie in pOptions
-   put theCookie into pOptions["cookie"]
+   	* put theCookie into pOptions["cookie"]
 
 NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
 https://github.com/bhall2001/fastjson
