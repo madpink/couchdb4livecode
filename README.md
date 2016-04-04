@@ -39,8 +39,10 @@ Functions:
 * pParams - an array with any OPTIONAL parameters, with the parameter as a key.
 	* These parameters are specified in the CouchDB API
 	* For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
-		`put true into tParams["include_docs"]`
-     		`put 10 into tParams["limit"]`
+		```
+		put true into tParams["include_docs"]
+     		put 10 into tParams["limit"]
+     		```
 
 * pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
 also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
