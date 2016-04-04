@@ -1,4 +1,5 @@
-# couchdb4livecode
+# couchdb4livecode 
+
 Daybed - A Library for Apache CouchDB
 
 ###Main Functions:
@@ -18,21 +19,22 @@ Daybed - A Library for Apache CouchDB
 
 ###Function Parameters
 
-* **pFunk** - (always required) Couch function being called, without the leading underscore, for example "all_docs"
+* **pFunk** (always required) Couch function being called, without the leading underscore, for example "all\_docs"
 	* a list is included below of functions that have been tested
 	* there are four categories of functions:  system, database, document, design document
 
-* **pURL** - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
+* **pURL** (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
 	* For example:   "http://192.168.23.42:5984/"
 	* With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
 
-* **pDB** - (required when acting on or retrieving from a database) - the name of the database being accessed
+* **pDB** (required when acting on or retrieving from a database) - the name of the database being accessed
 	* should be blank for system functions, must be included for database, document, and design document
 		
-* **pDocID** - (for get and delete functions) the document "_id" being retrieved
+* **pDocID**  (for get and delete functions) the document "\_id" being retrieved
 	* should be blank for system and database functions, must be included for document and design document 
 	* for design documents, use the pDocID param to specify it
-		* for selecting a view from a design document, add a slash with the view name to pDocID, for example: for the following view call /_design/querymon/_view/phone
+		* for selecting a view from a design document, add a slash with the view name to pDocID
+			* for example: for the following view call /\_design/querymon/\_view/phone
 			* `put "querymon/phone" into pDocID`
 		
 * **pDoc** - (for put and post functions) array containing the data being converted into a document for the database
@@ -40,8 +42,8 @@ Daybed - A Library for Apache CouchDB
 
 * **pParams** - an array with any OPTIONAL parameters, with the parameter as a key.
 	* These parameters are specified in the CouchDB API
-	* For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
-		* `put true into tParams["include_docs"]`
+	* For example:  to download documents when running the \_all\_docs function, and limit the list to only 10 records:
+		* `put true into tParams["include\_docs"]`
      		* `put 10 into tParams["limit"]`
 
 * **pOptions** - (optional) header options, including authentication, config values and return format
@@ -49,19 +51,19 @@ Daybed - A Library for Apache CouchDB
 ###Other Functions/Parameters
 
 ####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
-The couch.securedb function sets the "_security" document for the specified database.
+The couch.securedb function sets the "\_security" document for the specified database.
 * pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
-* pAdminNames - sets the given names up with admin rights (read,write,delete)
-* pAdminRoles - sets the given user roles up with admin rights (read,write,delete)
-* pMemberNames - sets the given names up with member rights (read only)
-* pMemberRoles - sets the given user roles up with member rights (read only)
+* pAdminNames: sets the given names up with admin rights (read,write,delete)
+* pAdminRoles: sets the given user roles up with admin rights (read,write,delete)
+* pMemberNames: sets the given names up with member rights (read only)
+* pMemberRoles: sets the given user roles up with member rights (read only)
 
 ####`couch.adduserdb(pURL,pUser,pPass,pOptions)`
-The couch.adduser function inserts a new record into the "_users" database, creates a database for the user, and 
+The couch.adduser function inserts a new record into the "\_users" database, creates a database for the user, and 
 sets the new user as the admin and member (which makes that user the only one who can access it).
-* pUsername - Username of the person signing up.
-* pPassword - Password for the account
-* pOptions["roles"] - can be used to assign the user to roles, must be in a numbered array
+* pUsername: Username of the person signing up.
+* pPassword: Password for the account
+* pOptions["roles"]: can be used to assign the user to roles, must be in a numbered array
 * Note:  only an admin can create a user
 
 ####`couch.peruserDB(pUsername)`
@@ -108,10 +110,10 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 * GET Function: slash
 	* Returns the welcome message and version information
 
-* GET Function: active_tasks	
+* GET Function: active\_tasks	
 	* Obtains a list of the tasks running in the server
 
-* GET Function: all_dbs	
+* GET Function: all\_dbs	
 	* Returns a list of all the databases
 
 * GET Function: config	
@@ -164,14 +166,14 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 * DELETE Function: db
 	* Deletes an existing database
  	
-* GET Function: all_docs	
+* GET Function: all\_docs	
 	* Returns a built-in view of all documents in this database
 
-* POST Function: all_docs	
+* POST Function: all\_docs	
 	* Returns certain rows from the built-in view of all documents
 	* pDoc["keys"] should be a numbered list of the rows desired
       
-* POST  Function: bulk_docs	
+* POST  Function: bulk\_docs	
 	* Inserts or updates multiple documents in to the database in a single request
 	* pDoc should be a numbered array with each number representing a single document
 
@@ -180,7 +182,7 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 
 * POST Function: changes
 	* Returns changes for the given database for certain document IDs
-	* pDoc["doc_ids"] should be a numbered list with desired documents
+	* pDoc["doc\_ids"] should be a numbered list with desired documents
       
 * POST Function: compact
 	* Starts a compaction for the database
@@ -189,7 +191,7 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 	* Starts a compaction for all the views in the selected design document
 	* pDoc should be the name of the design document
       
-* POST Function: ensure_full_commit
+* POST Function: ensure\_full\_commit
 	* Makes sure all uncommitted changes are written and synchronized to the disk
       
 * POST Function: purge
@@ -199,10 +201,10 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
      		* put "4-dc8088c3be9d44b41f87ba1470064672" into tDoc[tID][1]
      		* put couch.post(purge,tURL,tDB,tDoc)   
 
-* GET Function: revs_limit
+* GET Function: revs\_limit
 	* Returns the limit of historical revisions to store for a single document in the database
 
-* PUT Function: revs_limit
+* PUT Function: revs\_limit
 	* Sets the limit of historical revisions to store for a single document in the database
 	* pDoc is a number
 
@@ -240,7 +242,7 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 
 * PUT Function: design
 	* Creates a new design document, or new version of an existing one
-	* pDoc["_id"] is the name of the design document (unlike regular docs, this must be included)
+	* pDoc["\_id"] is the name of the design document (unlike regular docs, this must be included)
 	* pDoc["language"] is the programming language being used (most likely javascript)
 	* pDoc["views"] needs to contain a sub key for each view, and each view needs a subkey ["map"] the containts the view doc
 
