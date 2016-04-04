@@ -68,18 +68,18 @@ The couch.peruserDB function returns the database name associated with the usern
 
 **Authentication:** if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
-Option 1: include the username and password as part of the URL, for example:
+1. Include the username and password as part of the URL, for example:
 	* "http://admin:passw0rd@192.168.0.42:5984/"
 
-Option 2: use the pOptions parameter, and the script will encode the username and password into the httpheaders:
+2. Use the pOptions parameter, and the script will encode the username and password into the httpheaders:
 	* put "admin" into pOptions["user"]
 	* put "passw0rd" into pOptions["pass"]
 
-Option 3: use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
+3. Use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
 	* for example, put base64encode("username:password") will yield the string below:
 	* put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["userpasscode"]
 
-Option 4: use cookies/sessions... 
+4. Use cookies/sessions... 
 * First  get cookie by posting username and password to sessions
 	* put "admin" into pDoc["name"]     
 	* put "passw0rd" into pDoc["password"]
