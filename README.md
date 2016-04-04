@@ -1,7 +1,7 @@
 # couchdb4livecode
 Daybed - A Library for Apache CouchDB
 
-###Functions:
+###Main Functions:
 
 ####`couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
 * The couch.get function retrives a document, multiple documents, or information.
@@ -16,7 +16,7 @@ Daybed - A Library for Apache CouchDB
 * The couch.delete function deletes a document or database, or a config key.
 	* Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
 
-###Parameters
+###Function Parameters
 
 * **pFunk** - (always required) Couch function being called, without the leading underscore, for example "all_docs"
 	* a list is included below of functions that have been tested
@@ -45,6 +45,8 @@ Daybed - A Library for Apache CouchDB
      		* `put 10 into tParams["limit"]`
 
 * **pOptions** - (optional) header options, including authentication, config values and return format
+
+###Other Functions/Parameters
 
 ####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
 The couch.securedb function sets the "_security" document for the specified database.
@@ -99,7 +101,7 @@ NOTE: a library for decoding and encoding JSON needs to be added, I recommend on
 	* https://github.com/bhall2001/fastjson
 	* https://github.com/luxlogica/easyjson
 
-###Couch Functions (pFunk)
+###Couch Functions (values for pFunk)
 
 ####Couch System Functions
 
