@@ -69,11 +69,15 @@ POST /_restart	Restarts the server
      put "http://127.0.0.1:5984/" into tURL
      put couch.post(restart,tURL)
   
-===/_session	
+/_session	
 ===GET /_session	Returns Cookie-based login user information
-===POST /_session	Authenticates user by Cookie-based user login
+POST /_session	Authenticates user by Cookie-based user login
+     put "http://127.0.0.1:5984/" into tURL
+     put "admin" into pDoc["name"]     
+     put "passw0rd" into pDoc["password"]
+     put couch.post("session",tURL,,pDoc) into theCookie
+          ---returns a string with the cookie in it
 ===DELETE /_session	Logout Cookie-based user
-===      -----NOT TESTED
 
 /_stats	
 GET /_stats	Returns server statistics

@@ -1,9 +1,9 @@
-<?lc    /*	  
-Daybed - A Library for Apache CouchDB  version: 0.5.75   March 30, 2016
+/*	  <?lc
+Daybed - A Library for Apache CouchDB  version: 0.6.81   April 3, 2016
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
-This is a simple library that calls CouchDB's REST functions and then decodes them using EasyJSON.
+This is a simple library that calls CouchDB's REST functions.
 	
 Authentication: if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
@@ -14,13 +14,25 @@ Option 2: use the pOptions parameter, and the script will encode the username an
 put "admin" into pOptions["user"]
 put "passw0rd" into pOptions["pass"]
 
+Option 3: use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
+for example, put base64encode("username:password") will yield the string below:
+put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["userpasscode"]
+
+Option 4: use cookies/sessions... 
+First  get cookie by posting username and password to sessions
+   put "admin" into pDoc["name"]     
+   put "passw0rd" into pDoc["password"]
+   put couch.post("session",tURL,,pDoc) into theCookie
+Store it somewhere. For each subsequent call, send theCookie in pOptions
+   put theCookie into pOptions["cookie"]
+
+---FUNCTION PARAMETERS---
+
 pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
 
 pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
 For example:   "http://192.168.23.42:5984/"
 With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
-
---fnord--
 
 pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
 
@@ -38,12 +50,9 @@ put true into tParams["include_docs"]
 put 10 into tParams["limit"]
 
 pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
-
---don't panic
-
-pFormat - (optional) "array", "rawjson" or "prettyjson" for the return format
+also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
 the stack can have a customProperty called "preferredFormat" which can be one of those three values,
-if pFormat is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
+if pOptions["format"] is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
 
 couch.adduser is for creating a new user in the "_users" database
 
@@ -61,8 +70,10 @@ TO-DO:
 --need to upload DayBed Toolbox
 */
 
-	
-function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
+on ___CouchDB_Main_Functions___
+end ___CouchDB_Main_Functions___
+
+function couch.get pFunk pURL pDB pDocID pParams pOptions
    -----
    local tURL, tResult
    -----
@@ -103,11 +114,11 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions pFormat
    couch.setHeaders pOptions
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
    put URL(tURL) into tResult
-   return returnFormat(tResult,pFormat)
+   return returnFormat(tResult,pOptions["format"])
 end couch.get
 
 	
-function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
+function couch.put pFunk pURL pDB pDoc pParams pOptions
    -----
    local tURL, tResult, tRaw
    -----
@@ -158,11 +169,11 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions pFormat
          break
    end switch
    put the urlResponse into tResult
-   return returnFormat(tResult,pFormat)
+   return returnFormat(tResult,pOptions["format"])
 end couch.put
 
 	
-function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
+function couch.post pFunk pURL pDB pDoc pParams pOptions 
    -----
    local tURL, tResult, tJson
    -----
@@ -183,14 +194,16 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions pFormat
    end switch
    	   	
    couch.setHeaders pOptions
+   --if pOptions["content"] is "urlencoded" then put pDoc into tJson else 
    put a2j(pDoc) into tJson
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
    post tJson to URL(tURL)
    put the urlResponse into tResult
-   return returnFormat(tResult,pFormat)
+   if pFunk is "_session" then return couch.cookie(tResult)
+   return returnFormat(tResult,pOptions["format"])
 end couch.post
 		
-function couch.delete pFunk pURL pDB pDocID pParams pOptions pFormat
+function couch.delete pFunk pURL pDB pDocID pParams pOptions 
    -----
    local tURL, tResult
    -----
@@ -208,30 +221,89 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions pFormat
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
    delete URL(tURL)
    put the urlResponse into tResult
-   return returnFormat(tResult,pFormat)
+   return returnFormat(tResult,pOptions["format"])
 end couch.delete
-   
-function couch.adduser pURL pUsername pPassword pRoles pFormat
-   -----
-   local tURL, tResult, tJSON
-   -----
-   put "{" into tJSON
-   put keyVal("name",pUsername)&comma after tJSON
-   put keyVal("password",pPassword)&comma after tJSON
-   put keyVal("type","user")&comma after tJSON
-   
-   if pRoles is empty then 
-      put quote & "roles" & quote & colon & "[]}" after tJSON
+
+function couch.adduserdb pURL pUser pPass pOptions
+   put pOptions["format"] into tReturnFormat
+   put "json" into pOptions["format"]
+   put pUser into tUser["name"]
+   put pPass into tUser["password"]
+   put "user" into tUser["type"]
+   if pOptions["roles"] is not empty then
+      put pOptions["roles"] into tUser["roles"] 
    else
-      put quote & "roles" & quote & colon & "[" & pRoles & "]}" after tJSON
+      put empty into tUser["roles"][1]
    end if
+   put couch.put("users",pURL,,tUser,,pOptions) into tAdd
+   put "user"&"_"&pUser into tDB
+   put couch.put("db",pURL,tDB,,,pOptions) into tNewDB
+   put couch.securedb("set",pURL,tDB,pOptions,pUser,,pUser) into tResult
+   put "["&tAdd&comma&tNewDB&comma&tResult&"]" into tResult
+   return returnFormat(tResult,tReturnFormat)
+end couch.adduserdb
+
+function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberNames pMemberRoles
+   put pOptions["format"] into returnFormat
+   put "json" into pOptions["format"]
    
-   put "org.couchdb.user:" before pUsername
-   put couch.DBURL(pURL,"_users",,,pUsername) into tURL
-   put tJSON into URL(tURL)
-   put the urlResponse into tResult
-   return returnFormat(tResult,pFormat)
-end couch.addUser
+   switch pFunk
+      case "set"
+      case "replace"
+         put "_security" into tSecurity["_id"]
+         put c2a(pAdminNames) into tSecurity["admins"]["names"]
+         put c2a(pAdminRoles)into tSecurity["admins"]["roles"]
+         put c2a(pMemberNames) into tSecurity["members"]["names"]
+         put c2a(pMemberRoles) into tSecurity["members"]["roles"]
+         put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
+         break
+      case "get"
+         put couch.get("doc",pURL,pDB,"_security",,pOptions) into tResult
+         break
+      case "add"
+         put "array" into pOptions["format"]
+         put couch.get("doc",pURL,pDB,"_security",,pOptions) into tSecurity
+         put "_security" into tSecurity["_id"]
+         put add2list(pAdminNames,tSecurity["admins"]["names"]) into tSecurity["admins"]["names"]
+         put add2list(pAdminRoles,tSecurity["admins"]["roles"]) into tSecurity["admins"]["roles"]
+         put add2list(pMemberNames,tSecurity["members"]["names"]) into tSecurity["members"]["names"]
+         put add2list(pMemberRoles,tSecurity["members"]["roles"]) into tSecurity["members"]["roles"]
+         put "json" into pOptions["format"]
+         put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
+         break
+      case "remove"
+      case "delete"
+         put "array" into pOptions["format"]
+         put couch.get("doc",pURL,pDB,"_security",,pOptions) into tSecurity
+         put "_security" into tSecurity["_id"]
+         put delFromlist(pAdminNames,tSecurity["admins"]["names"]) into tSecurity["admins"]["names"]
+         put delFromlist(pAdminRoles,tSecurity["admins"]["roles"]) into tSecurity["admins"]["roles"]
+         put delFromlist(pMemberNames,tSecurity["members"]["names"]) into tSecurity["members"]["names"]
+         put delFromlist(pMemberRoles,tSecurity["members"]["roles"]) into tSecurity["members"]["roles"]
+         put "json" into pOptions["format"]
+         put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
+         break
+   end switch
+   return returnFormat(tResult,returnFormat)
+end couch.securedb
+
+on ___CouchDB_Other_Functions___
+end ___CouchDB_Other_Functions___
+
+function couch.cookie pResult
+   put j2a(pResult) into tResponse
+   if tResponse["ok"] is not true then return "ERROR"
+   put libURLLastRHHeaders() into tReturnHeaders
+   repeat for each line tLine in tReturnHeaders
+      if tLine begins with "Set-Cookie" then
+         set itemdel to ";"
+         put item 1 of tLine into tLine
+         set itemdel to "="
+         put item 2 of tLine into tCookie
+         return tCookie
+      end if
+   end repeat
+end couch.cookie
 
 function couch.peruserDB pUsername
    ---requires "couchperuser" daemon to be installed
@@ -240,13 +312,8 @@ function couch.peruserDB pUsername
    return tDBName
 end couch.peruserDB
 
-on ___CouchDB_Builder___
-end ___CouchDB_Builder___
-
-	
 function couch.simplearray pKey pDoc
-   local tJson
-   	     
+   local tJson	     
    put the number of lines in the keys of pDoc into tCount
    put "{"&quote&pKey&quote&colon&" [" into tJson
    repeat with x=1 to tCount
@@ -260,12 +327,33 @@ end couch.simplearray
 command couch.setHeaders pOptions
    local couchHeaders,tUser,tPass
    put "Accept: application/json, text/plain, text/event-stream"&cr into couchHeaders
+   --if pOptions["content"] is "urlencoded" then 
+   --put "Content-Type:application/x-www-form-urlencoded" after couchHeaders
+   --else
    put "Content-Type: application/json" after couchHeaders
-   if pOptions is not empty then
+   --end if
+   if pOptions["user"] is not empty then
       put pOptions["user"] into tUser
       put pOptions["pass"] into tPass
       put "Authorization: Basic"&& base64encode(tUser & colon & tPass) & cr before couchHeaders
    end if
+   if pOptions["userpasscode"] is not empty then
+      put "Authorization: Basic"&& pOptions["userpasscode"] & cr before couchHeaders
+   end if
+   if pOptions["cookie"] is not empty then
+      put "Cookie: AuthSession="& pOptions["cookie"] &cr before couchHeaders
+   end if
+   switch pOptions["authtype"]
+      case "login"
+         put "Authorization: Basic"&& base64encode(pOptions["authval"]) & cr before couchHeaders
+         break
+      case "encoded"
+         put "Authorization: Basic"&& pOptions["authval"] & cr before couchHeaders
+         break
+      case "cookie"
+         put "Cookie: AuthSession="& pOptions["authval"] &cr before couchHeaders
+         break
+   end switch
    set the httpheaders to couchHeaders
 end couch.setHeaders
 
@@ -303,7 +391,6 @@ function couch.parseParams pParamArray
    end repeat
    return tParamString
 end couch.parseParams
-
 	
 function returnFormat pResult pFormat
    -----
@@ -350,6 +437,44 @@ function a2j pArray keepNumeric
    replace "[null]" with "[]" in tJson
    return tJson
 end a2j
+
+function c2a pList
+   split pList by comma
+   if pList is empty then put empty into pList[1]
+   return pList
+end c2a
+
+function delFromlist pList pArray
+   if pList is empty then return pArray
+   put array2list(pArray) into tDList
+   replace comma with cr in pList
+   repeat for each item tName in tDList
+      if tName is not among the lines of pList then put tName & comma after tDNewList
+   end repeat
+   put empty into the last char of tDNewList
+   split tDNewList by comma
+   return tDNewList
+end delFromlist
+
+function add2list pList pArray
+   if pList is empty then return pArray
+   put array2list(pArray) into tAList
+   set itemdel to comma
+   repeat for each item tName in pList
+      if tName is not among the lines of tAList then put cr & tName after tAList
+   end repeat
+   split tAList by cr
+   return tAList
+end add2list
+
+function array2list pArray
+   put the number of lines in the keys of pArray into tCnt
+   repeat with x=1 to tCnt
+      put pArray[x] after tList
+      if x<tCnt then put cr after tList
+   end repeat
+   return tList
+end array2list
 
 function keyVal pKey pVal
    -----

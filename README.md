@@ -43,17 +43,25 @@ pParams - an array with any OPTIONAL parameters, with the parameter as a key.
      put true into tParams["include_docs"]
      put 10 into tParams["limit"]
 
-pOptions - header options, including user and pass (see "Authentication"), also used in "config" operations
+pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
+also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
+the stack can have a customProperty called "preferredFormat" which can be one of those three values,
+if pOptions["format"] is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
 
-pFormat - (optional) "array", "rawjson" or "prettyjson"
-if the stack has a customProperty called "preferredFormat" with one of the above three values, then it will be used
-by default if pFormat is left blank, otherwise "array" will be used
+      couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)
+The couch.securedb function sets the "_security" document for the specified database.
+pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
+pAdminNames - sets the given names up with admin rights (read,write,delete)
+pAdminRoles - sets the given user roles up with admin rights (read,write,delete)
+pMemberNames - sets the given names up with member rights (read only)
+pMemberRoles - sets the given user roles up with member rights (read only)
 
-      couch.adduser(pURL,pUsername,pPassword,pRoles)
-The couch.adduser function inserts a new record into the "_users" database.
+      couch.adduserdb(pURL,pUser,pPass,pOptions)
+The couch.adduser function inserts a new record into the "_users" database, creates a database for the user, and 
+sets the new user as the admin and member (which makes that user the only one who can access it).
 pUsername - Username of the person signing up.
 pPassword - Password for the account
-pRoles (optional) - roles to assign to the user
+pOptions["roles"] - can be used to assign the user to roles, must be in a numbered array
 Note:  only an admin can create a user
 
       couch.peruserDB(pUsername)
@@ -63,11 +71,23 @@ The couch.peruserDB function returns the database name associated with the usern
 Authentication: if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
 Option 1: include the username and password as part of the URL, for example:
-	"http://admin:passw0rd@192.168.0.42:5984/"
+"http://admin:passw0rd@192.168.0.42:5984/"
 
 Option 2: use the pOptions parameter, and the script will encode the username and password into the httpheaders:
-    put "admin" into pOptions["user"]
-	 put "passw0rd" into pOptions["pass"]
+put "admin" into pOptions["user"]
+put "passw0rd" into pOptions["pass"]
+
+Option 3: use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
+for example, put base64encode("username:password") will yield the string below:
+put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["userpasscode"]
+
+Option 4: use cookies/sessions... 
+First  get cookie by posting username and password to sessions
+   put "admin" into pDoc["name"]     
+   put "passw0rd" into pDoc["password"]
+   put couch.post("session",tURL,,pDoc) into theCookie
+Store it somewhere. For each subsequent call, send theCookie in pOptions
+   put theCookie into pOptions["cookie"]
 
 NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
 https://github.com/bhall2001/fastjson
