@@ -14,19 +14,14 @@ The couch.post function inserts multiple documents or values into a database.
 
       couch.delete(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)
 The couch.delete function deletes a document or database, or a config key.
-
 Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
 
 pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
-
 		a list is included below of functions that have been tested
-
 		there are four categories of functions:  system, database, document, design document
 
 pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
-
 		For example:   "http://192.168.23.42:5984/"
-
 		With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
 
 pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
@@ -56,11 +51,10 @@ if pOptions["format"] is blank, then "preferredFormat" will be used, if it is no
       couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)
 The couch.securedb function sets the "_security" document for the specified database.
 pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
-
-* pAdminNames - sets the given names up with admin rights (read,write,delete)
-* pAdminRoles - sets the given user roles up with admin rights (read,write,delete)
-* pMemberNames - sets the given names up with member rights (read only)
-* pMemberRoles - sets the given user roles up with member rights (read only)
+pAdminNames - sets the given names up with admin rights (read,write,delete)
+pAdminRoles - sets the given user roles up with admin rights (read,write,delete)
+pMemberNames - sets the given names up with member rights (read only)
+pMemberRoles - sets the given user roles up with member rights (read only)
 
       couch.adduserdb(pURL,pUser,pPass,pOptions)
 The couch.adduser function inserts a new record into the "_users" database, creates a database for the user, and 
