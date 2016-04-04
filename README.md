@@ -1,7 +1,7 @@
 # couchdb4livecode
 Daybed - A Library for Apache CouchDB
 
-Functions:
+###Functions:
 
 ####`couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
 * The couch.get function retrives a document, multiple documents, or information.
@@ -16,7 +16,7 @@ Functions:
 * The couch.delete function deletes a document or database, or a config key.
 	* Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
 
-##### Parameters
+###Parameters
 
 * **pFunk** - (always required) Couch function being called, without the leading underscore, for example "all_docs"
 	* a list is included below of functions that have been tested
@@ -48,7 +48,7 @@ Functions:
 
 ####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
 The couch.securedb function sets the "_security" document for the specified database.
-pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
+* pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
 * pAdminNames - sets the given names up with admin rights (read,write,delete)
 * pAdminRoles - sets the given user roles up with admin rights (read,write,delete)
 * pMemberNames - sets the given names up with member rights (read only)
@@ -66,7 +66,8 @@ sets the new user as the admin and member (which makes that user the only one wh
 Requires "couchperuser" to be installed (https://github.com/etrepum/couchperuser)
 The couch.peruserDB function returns the database name associated with the username specified.
 
-**Authentication:** if the CouchDB URL requires authentication, it can be achieved in one of two ways:
+###Authentication: 
+if the CouchDB URL requires authentication, it can be achieved in one of two ways:
 
 1. Include the username and password as part of the URL, for example:
 	* "http://admin:passw0rd@192.168.0.42:5984/"
@@ -87,7 +88,7 @@ The couch.peruserDB function returns the database name associated with the usern
 	* Store it somewhere. For each subsequent call, send theCookie in pOptions
    		* put theCookie into pOptions["cookie"]
 
-Return Format
+###Return Format
 	* include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
 	* the stack can have a customProperty called "preferredFormat" which can be one of those three values,
 	* if pOptions["format"] is blank, then "preferredFormat" will be used
@@ -98,9 +99,9 @@ NOTE: a library for decoding and encoding JSON needs to be added, I recommend on
 	* https://github.com/bhall2001/fastjson
 	* https://github.com/luxlogica/easyjson
 
-FUNCTIONS (pFunk)
+###Couch Functions (pFunk)
 
------SYSTEM FUNCTIONS-----
+####Couch System Functions
 
 GET Function: slash
 	* Returns the welcome message and version information
@@ -146,7 +147,7 @@ GET Function: stats
 GET Function: uuids	
 	* Generates a list of UUIDs from the server
      
------DATABASE FUNCTIONS-----
+####Couch Database Functions
 
 GET Function: db
 	* Returns the database information
@@ -215,7 +216,7 @@ PUT Function: security
      		* put "user" into tDoc["members"]["names"][1]
      		* put "developer" into tDoc["members"]["roles"][1]
  	
------DOCUMENT FUNCTIONS-----
+####Couch Document Functions
 
 GET Function: doc
 	* Returns the document
@@ -229,8 +230,7 @@ DELETE Function: doc
 	* pDocID is the document ID
 	* pParams["rev"] should be the most recent rev number
 
-
------DESIGN DOCUMENT-----
+####Couch Design Doc Functions
 
 GET Function: design
 	* Returns the design document
