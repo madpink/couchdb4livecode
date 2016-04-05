@@ -1,5 +1,5 @@
 /*	  <?lc
-Daybed - A Library for Apache CouchDB  version: 0.6.81   April 3, 2016
+Daybed - A Library for Apache CouchDB  version: 0.6.85   April 4, 2016
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
@@ -69,6 +69,7 @@ TO-DO:
 --offline syncable database
 --need to upload DayBed Toolbox
 */
+
 
 on ___CouchDB_Main_Functions___
 end ___CouchDB_Main_Functions___
@@ -224,7 +225,7 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions
    return returnFormat(tResult,pOptions["format"])
 end couch.delete
 
-function couch.adduserdb pURL pUser pPass pOptions
+function couch.adduser pURL pUser pPass pOptions pAddDB
    put pOptions["format"] into tReturnFormat
    put "json" into pOptions["format"]
    put pUser into tUser["name"]
@@ -235,13 +236,15 @@ function couch.adduserdb pURL pUser pPass pOptions
    else
       put empty into tUser["roles"][1]
    end if
-   put couch.put("users",pURL,,tUser,,pOptions) into tAdd
-   put "user"&"_"&pUser into tDB
-   put couch.put("db",pURL,tDB,,,pOptions) into tNewDB
-   put couch.securedb("set",pURL,tDB,pOptions,pUser,,pUser) into tResult
-   put "["&tAdd&comma&tNewDB&comma&tResult&"]" into tResult
+   put couch.put("users",pURL,,tUser,,pOptions) into tResult
+   if pAddDB then
+      put "user"&"_"&pUser into tDB
+      put couch.put("db",pURL,tDB,,,pOptions) into tNewDB
+      put couch.securedb("set",pURL,tDB,pOptions,pUser,,pUser) into tSecure
+      put "["&tResult&comma&tNewDB&comma&tResult&"]" into tResult
+   end if
    return returnFormat(tResult,tReturnFormat)
-end couch.adduserdb
+end couch.adduser
 
 function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberNames pMemberRoles
    put pOptions["format"] into returnFormat
@@ -289,6 +292,44 @@ end couch.securedb
 
 on ___CouchDB_Other_Functions___
 end ___CouchDB_Other_Functions___
+
+function couch.db pCouch  ---This is an experimental UberFunction
+     /*  This is experimental
+     put "get" into tCouch["verb"]
+     put "http://127.0.0.1:5984" into tCouch["url"]
+     put "doc" into tCouch["funk"]
+     put "bbbbb" into tCouch["docid"]
+     
+     put "login" into tCouch["options"]["authtype"]
+     put "fmulder:trustno1" into tCouch["options"]["authval"]
+     put "array" into tCouch["options"]["format"]
+     
+     put couch.db(tCouch) into tRezult
+     */
+     put pCouch["options"]["format"] into tFormat
+     put "json" into pCouch["options"]["format"]
+     switch pCouch["verb"]
+          case "get"
+               put couch.get(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["docid"],pCouch["params"],pCouch["options"]) into tResult
+               break
+          case "put"
+               put couch.put(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["doc"],pCouch["params"],pCouch["options"]) into tResult
+               break
+          case "post"
+               put couch.post(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["doc"],pCouch["params"],pCouch["options"]) into tResult
+               break
+          case "delete"
+               put couch.delete(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["docid"],pCouch["params"],pCouch["options"]) into tResult
+               break
+          case "adduser"
+               put  couch.adduserdb(pCouch["url"],pCouch["user"],pCouch["pass"],pCouch["options"],pCouch["addDB"]) into tResult
+               break
+          case "securedb"
+               put couch.securedb(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["adminnames"],pCouch["adminroles"],pCouch["membernames"],pCouch["memberroles"]) into tResult
+               break
+     end switch
+     return returnFormat(tResult,tFormat)
+end couch.db
 
 function couch.cookie pResult
    put j2a(pResult) into tResponse

@@ -58,12 +58,13 @@ The couch.securedb function sets the "\_security" document for the specified dat
 * pMemberNames: sets the given names up with member rights (read only)
 * pMemberRoles: sets the given user roles up with member rights (read only)
 
-####`couch.adduserdb(pURL,pUser,pPass,pOptions)`
-The couch.adduser function inserts a new record into the "\_users" database, creates a database for the user, and 
+####`couch.adduser(pURL,pUser,pPass,pOptions,pAddDB)`
+The couch.adduser function inserts a new record into the "\_users" database, optionally creates a database for the user, and 
 sets the new user as the admin and member (which makes that user the only one who can access it).
 * pUsername: Username of the person signing up.
 * pPassword: Password for the account
 * pOptions["roles"]: can be used to assign the user to roles, must be in a numbered array
+* pAddDB: if true, adds a database with the user's name and secures it
 * Note:  only an admin can create a user
 
 ####`couch.peruserDB(pUsername)`
