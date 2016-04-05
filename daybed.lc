@@ -1,5 +1,5 @@
 /*	  <?lc
-Daybed - A Library for Apache CouchDB  version: 0.6.85   April 4, 2016
+Daybed - A Library for Apache CouchDB  version: 0.6.86   April 4, 2016
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
@@ -238,7 +238,7 @@ function couch.adduser pURL pUser pPass pOptions pAddDB
    end if
    put couch.put("users",pURL,,tUser,,pOptions) into tResult
    if pAddDB then
-      put "user"&"_"&pUser into tDB
+      put couch.userDB(pUser) into tDB
       put couch.put("db",pURL,tDB,,,pOptions) into tNewDB
       put couch.securedb("set",pURL,tDB,pOptions,pUser,,pUser) into tSecure
       put "["&tResult&comma&tNewDB&comma&tResult&"]" into tResult
@@ -322,7 +322,7 @@ function couch.db pCouch  ---This is an experimental UberFunction
                put couch.delete(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["docid"],pCouch["params"],pCouch["options"]) into tResult
                break
           case "adduser"
-               put  couch.adduserdb(pCouch["url"],pCouch["user"],pCouch["pass"],pCouch["options"],pCouch["addDB"]) into tResult
+               put  couch.adduser(pCouch["url"],pCouch["user"],pCouch["pass"],pCouch["options"],pCouch["addDB"]) into tResult
                break
           case "securedb"
                put couch.securedb(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["adminnames"],pCouch["adminroles"],pCouch["membernames"],pCouch["memberroles"]) into tResult
@@ -345,6 +345,16 @@ function couch.cookie pResult
       end if
    end repeat
 end couch.cookie
+
+function couch.userDB pUsername
+   put "user_" into tDBName
+   put urlencode(pUsername) into tUser
+   replace "%40" with "(at)" in tUser
+   replace "%" with "$" in tUser
+   replace "." with "(dot)" in tUser
+   put tUser after tDBName
+   return tDBName
+end couch.userDB
 
 function couch.peruserDB pUsername
    ---requires "couchperuser" daemon to be installed
