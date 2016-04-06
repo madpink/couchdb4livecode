@@ -63,9 +63,17 @@ NOTE: a library for decoding and encoding JSON needs to be added, I recommend on
 https://github.com/bhall2001/fastjson
 https://github.com/luxlogica/easyjson
 
-TO-DO:
---need to add attachments
---need to implement replicator
+TO-DO CouchDB Functions to implement/test:
+- doc attachments (put)
+- design docs: show (post)
+- design docs: show on doc (post)
+- design docs: list  (post)
+- design docs: list from other doc  (post)
+- design docs: update (put)
+- design docs: view (post)
+- design docs: attachments (get, put, delete)
+
+TO-DO 
 --offline syncable database
 --need to upload DayBed Toolbox
 */
@@ -94,7 +102,13 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions
       case "designinfo"
          put "/_info" after pDocID
       case "design"
+      case "ddoc"
+         put pDoc["_id"] into pDocID
          put "_design/" before pDocID
+         if pOptions["ddocfunc"] is not empty then put "/_" & pOptions["ddocfunc"] after pDocID
+         if pOptions["ddocname"] is not empty then put "/" & pOptions["ddocfuncname"] after pDocID
+         if pOptions["ddocxtend"] is not empty then put "/" & pOptions["ddocxtend"] after pDocID
+         if pOptions["ddocxtend2"] is not empty then put "/" & pOptions["ddocxtend2"] after pDocID
          put empty into pFunk
          break
       case "config"
@@ -111,6 +125,10 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions
          put "_design/" & pDesign & "/_view/" & pView into pDocID
          put empty into pFunk
          break
+      case "attach"
+         put empty into pFunk
+         put "/" & pOptions["attachment"] after pDocID
+         break
       default
          put "_" before pFunk
          break
@@ -125,8 +143,9 @@ end couch.get
 	
 function couch.put pFunk pURL pDB pDoc pParams pOptions
    -----
-   local tURL, tResult, tRaw
+   local tURL, tResult, tRaw, temp, tFunktion
    -----
+   put pFunk into tFunktion
    switch pFunk
       case "db"
          put empty into pDoc
@@ -140,9 +159,18 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
          put empty into pFunk
          put pDoc["_id"] into pDocID
          break
+      case "attach"
+         put empty into pFunk
+         put pOptions["docid"] & "/" & pOptions["attachment"] into pDocID
+         break
       case "design"
+      case "ddoc"
          put pDoc["_id"] into pDocID
          put "_design/" before pDocID
+         if pOptions["ddocfunc"] is not empty then put "/_" & pOptions["ddocfunc"] after pDocID
+         if pOptions["ddocname"] is not empty then put "/" & pOptions["ddocfuncname"] after pDocID
+         if pOptions["ddocxtend"] is not empty then put "/" & pOptions["ddocxtend"] after pDocID
+         if pOptions["ddocxtend2"] is not empty then put "/" & pOptions["ddocxtend2"] after pDocID
          put empty into pFunk
          break
       case "config"
@@ -164,13 +192,19 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
    end switch
    couch.setHeaders pOptions
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-   switch pFunk
+   switch tFunktion
       case "_config"
          put quote & pOptions["value"] & quote into pDoc
          put pDoc into URL(tURL)
          break
       case "_revs_limit"
          put pDoc into URL(tURL)
+         break
+      case "attach"
+         --put "binfile" & pOptions["attachpath"] into tPath
+         put  URL ("binfile:/User/dapink/Dropbox/bad_luck_friday13.jpg") into tFile
+         --libURLftpUploadFile tFile,tURL
+         put tFile into URL(tURL)
          break
       default
          put a2j(pDoc) into tJson
@@ -198,46 +232,65 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions
          put "_compact" into pFunk
          put pDoc into pDocID
          break
+      case "design"
+      case "ddoc"
+         put pDoc["_id"] into pDocID
+         put "_design/" before pDocID
+         if pOptions["ddocfunc"] is not empty then put "/_" & pOptions["ddocfunc"] after pDocID
+         if pOptions["ddocname"] is not empty then put "/" & pOptions["ddocfuncname"] after pDocID
+         if pOptions["ddocxtend"] is not empty then put "/" & pOptions["ddocxtend"] after pDocID
+         if pOptions["ddocxtend2"] is not empty then put "/" & pOptions["ddocxtend2"] after pDocID
+         put empty into pFunk
+         break
       default
          put "_" before pFunk
          break
    end switch
    	   	
    couch.setHeaders pOptions
-   --if pOptions["content"] is "urlencoded" then put pDoc into tJson else 
    put a2j(pDoc) into tJson
    put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
    post tJson to URL(tURL)
    put the urlResponse into tResult
-   if pFunk is "_session" then return couch.cookie(tResult)
-   return returnFormat(tResult,pOptions["format"])
+   switch pFunk
+      case "_session"
+         return couch.cookie(tResult)
+         break
+      default
+         return returnFormat(tResult,pOptions["format"])
+         break
+   end switch
 end couch.post
 		
 function couch.delete pFunk pURL pDB pDocID pParams pOptions 
-   -----
-   local tURL, tResult
-   -----
-   switch pFunk
-      case "db"
-         put empty into pDocID
-         put empty into pFunk
-         break
-      case "doc"
-         put empty into pFunk
-         break
-      case "localdoc"
-         put empty into pFunk
-         put "_local/" before pDocID
-         break
-      default
-         put "_" before pFunk
-         break
-   end switch
-   couch.setHeaders
-   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-   delete URL(tURL)
-   put the urlResponse into tResult
-   return returnFormat(tResult,pOptions["format"])
+     -----
+     local tURL, tResult
+     -----
+     switch pFunk
+          case "db"
+               put empty into pDocID
+               put empty into pFunk
+               break
+          case "attach"
+               put empty into pFunk
+               put "/" & pOptions["attachment"] after pDocID
+               break	
+          case "doc"
+               put empty into pFunk
+               break
+          case "localdoc"
+               put empty into pFunk
+               put "_local/" before pDocID
+               break
+          default
+               put "_" before pFunk
+               break
+     end switch
+     couch.setHeaders
+     put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+     delete URL(tURL)
+     put the urlResponse into tResult
+     return returnFormat(tResult,pOptions["format"])
 end couch.delete
 
 function couch.adduser pURL pUser pPass pOptions pAddDB
@@ -349,6 +402,14 @@ function couch.db pCouch  ---This is an experimental UberFunction
      return returnFormat(tResult,tFormat)
 end couch.db
 
+function couch.getrev pURL pDB pDocID pOptions
+	put pOptions["authtype"] into tOptions["authtype"]
+	put pOptions["authval"] into tOptios["authval"]
+	put "array" into tOptions["format"]
+	put couch.get("doc",pURL,pDB,pDocID,tOptions) into tArray
+   return tArray["_rev"]
+end couch.getrev
+
 function couch.cookie pResult
       -----
    local tResponse, tLine, tCookie, tReturnHeaders
@@ -405,36 +466,36 @@ function couch.simplearray pKey pDoc
 end couch.simplearray
 
 command couch.setHeaders pOptions
-   local couchHeaders,tUser,tPass
-   put "Accept: application/json, text/plain, text/event-stream"&cr into couchHeaders
-   --if pOptions["content"] is "urlencoded" then 
-   --put "Content-Type:application/x-www-form-urlencoded" after couchHeaders
-   --else
-   put "Content-Type: application/json" after couchHeaders
-   --end if
-   if pOptions["user"] is not empty then
-      put pOptions["user"] into tUser
-      put pOptions["pass"] into tPass
-      put "Authorization: Basic"&& base64encode(tUser & colon & tPass) & cr before couchHeaders
-   end if
-   if pOptions["userpasscode"] is not empty then
-      put "Authorization: Basic"&& pOptions["userpasscode"] & cr before couchHeaders
-   end if
-   if pOptions["cookie"] is not empty then
-      put "Cookie: AuthSession="& pOptions["cookie"] &cr before couchHeaders
-   end if
-   switch pOptions["authtype"]
-      case "login"
-         put "Authorization: Basic"&& base64encode(pOptions["authval"]) & cr before couchHeaders
-         break
-      case "encoded"
-         put "Authorization: Basic"&& pOptions["authval"] & cr before couchHeaders
-         break
-      case "cookie"
-         put "Cookie: AuthSession="& pOptions["authval"] &cr before couchHeaders
-         break
-   end switch
-   set the httpheaders to couchHeaders
+     local couchHeaders,tUser,tPass
+     if pOptions["mimetype"] is not empty then 
+          put "Content-Type:"&&pOptions["mimetype"] into couchHeaders
+     else
+          put "Accept: application/json, text/plain, text/event-stream"&cr into couchHeaders
+          put "Content-Type: application/json" after couchHeaders
+     end if
+     if pOptions["user"] is not empty then
+          put pOptions["user"] into tUser
+          put pOptions["pass"] into tPass
+          put "Authorization: Basic"&& base64encode(tUser & colon & tPass) & cr before couchHeaders
+     end if
+     if pOptions["userpasscode"] is not empty then
+          put "Authorization: Basic"&& pOptions["userpasscode"] & cr before couchHeaders
+     end if
+     if pOptions["cookie"] is not empty then
+          put "Cookie: AuthSession="& pOptions["cookie"] &cr before couchHeaders
+     end if
+     switch pOptions["authtype"]
+          case "login"
+               put "Authorization: Basic"&& base64encode(pOptions["authval"]) & cr before couchHeaders
+               break
+          case "encoded"
+               put "Authorization: Basic"&& pOptions["authval"] & cr before couchHeaders
+               break
+          case "cookie"
+               put "Cookie: AuthSession="& pOptions["authval"] &cr before couchHeaders
+               break
+     end switch
+     set the httpheaders to couchHeaders
 end couch.setHeaders
 
 function couch.DBURL pURL pDB pParams pFunk pDocID

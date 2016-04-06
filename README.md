@@ -32,10 +32,7 @@ Daybed - A Library for Apache CouchDB
 		
 * **pDocID**  (for get and delete functions) the document "\_id" being retrieved
 	* should be blank for system and database functions, must be included for document and design document 
-	* for design documents, use the pDocID param to specify it
-		* for selecting a view from a design document, add a slash with the view name to pDocID
-			* for example: for the following view call /\_design/querymon/\_view/phone
-			* `put "querymon/phone" into pDocID`
+	* use the pDocID param to specify the name of a design document being called
 		
 * **pDoc** - (for put and post functions) array containing the data being converted into a document for the database
 	* should be blank for system functions, must be included in document and design document (also used in a db function)
@@ -44,9 +41,15 @@ Daybed - A Library for Apache CouchDB
 	* These parameters are specified in the CouchDB API
 	* For example:  to download documents when running the \_all\_docs function, and limit the list to only 10 records:
 		* `put true into tParams["include\_docs"]`
-     		* `put 10 into tParams["limit"]`
+     	* `put 10 into tParams["limit"]`
+	* Example, to include the revision number for a document
+     	* `put "13-8j4f9438jf3498j98fy39d23d" into tParams["rev"]`
 
 * **pOptions** - (optional) header options, including authentication, config values and return format
+	* For Design Documents, use the following options:
+		* pOptions["ddocfunc"] for the function being called (info, view, show, list, update)
+		* pOptions["ddocname"] for the name of the specific function programmed in the ddoc
+		* pOptions["ddocxtend"] and pOptions["ddocxtend2"] for further extended URLs
 
 ###Other Functions/Parameters
 
@@ -105,16 +108,14 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 	* https://github.com/luxlogica/easyjson
 
 ###To-Do List (Functions that still need to be implemented/tested)
-- doc attachments (put, delete)
-- design docs (delete)
-- design docs: show (get,post)
-- design docs: show on doc (get,post)
-- design docs: list  (get, post)
-- design docs: list from other doc  (get, post)
-- design docs: rewrite (?)
+- doc attachments (put)
+- design docs: show (post)
+- design docs: show on doc (post)
+- design docs: list  (post)
+- design docs: list from other doc  (post)
 - design docs: update (put)
 - design docs: view (post)
-- design docs: attachments (get, put delete)
+- design docs: attachments (get, put, delete)
 
 ###Couch Functions (values for pFunk)
 

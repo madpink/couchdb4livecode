@@ -262,7 +262,7 @@ POST /{db}/_view_cleanup	Removes view files that are not used by any design docu
 DOCUMENT API
   
 /{db}/{docid}	
-GET /{db}/{docid}	Returns the document
+GET /{db}/{docid}	Returns the documentrr
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "0dc77cd3-389b-43c1-aef4-e2a5a31eef72" into tDocID
@@ -280,10 +280,32 @@ DELETE /{db}/{docid}	Deletes the document
      put "1-e0af530ae2775044d7b2db4c91cc18a1" into tParams["rev"]
      put couch.delete(doc,tURL,tDB,tDocID,tParams)
 
-===/{db}/{docid}/{attname}	
-===GET /{db}/{docid}/{attname}	Gets the attachment of a document     
+/{db}/{docid}/{attname}	
+GET /{db}/{docid}/{attname}	Gets the attachment of a document     
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "thisdoc" into tDocID
+     put "my_cat.jpg" into tOptions["attachment"]
+     put couch.get(attach,tURL,tDB,tDocID)
+
+
 ===PUT /{db}/{docid}/{attname}	Adds an attachment of a document
-===DELETE /{db}/{docid}/{attname}	Deletes an attachment of a document
+     put "http://127.0.0.1:5984/" into tURL
+     put "test_suite_db2" into tDB
+     put "zxsd3324d" into tOptions["docid"]
+     put "my_cat.jpg" into tOptions["attachment"]
+     put "1-465aa47fc9a072e79d5898a3257acb4c" intp tParams["rev"]
+     put "/User/pink/testdata/my_cat.jpg" into tOptions["attachpath"]
+     put "image/jpg" into tOptions["mimetype"]
+     put couch.get(attach,tURL,tDB)
+
+DELETE /{db}/{docid}/{attname}	Deletes an attachment of a document
+     put "http://127.0.0.1:5984/" into tURL
+     put "test_suite_db2" into tDB
+     put "zxsd3324d" into tDocID
+     put "my_cat.jpg" into tOptions["attachment"]
+     put "1-465aa47fc9a072e79d5898a3257acb4c" intp tParams["rev"]
+     put couch.delete(attach,tURL,tDB,tDocID)
 
 DESIGN DOCUMENT API
 
@@ -300,7 +322,7 @@ PUT /{db}/_design/{ddoc}	Creates a new design document, or new version of an exi
      put "javascript" into pDoc["language"]
      put "function(doc) {"&cr&"  emit(null, doc);"&cr&"}" into pDoc["views"]["myquery"]["map"]
      put couch.put(design,tURL,tDB,pDoc)
-DELETE /{db}/_design/{ddoc}	Deletes the design document
+===DELETE /{db}/_design/{ddoc}	Deletes the design document
  	   --NOT IMPLEMENTED YET
   
 /{db}/_design/{ddoc}/_info	
@@ -308,49 +330,77 @@ GET /{db}/_design/{ddoc}/_info	Returns view index information for the specified 
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put couch.get(designinfo,tURL,tDB,tDocID) into zzz
+     put "info" into tOptions["ddocfunc"]
+     put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
    
 /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	
 GET /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	Executes a list function against the view from other design document
- 	   --NOT IMPLEMENTED YET
-POST /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "testdoc" into tDocID
+     put "list" into tOptions["ddocfunc"]
+     put "myspeciallist" into tOptions["ddocname"]
+     put "otherdoc" into tOptions["ddocxtend"]  
+     put "view" into tOptions["ddocxtend2"]
+     put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
+     
+===POST /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	
  	   --NOT IMPLEMENTED YET
  	
 /{db}/_design/{ddoc}/_list/{func}/{view}	
 GET /{db}/_design/{ddoc}/_list/{func}/{view}	Executes a list function against the view from the same design document
- 	   --NOT IMPLEMENTED YET
-POST /{db}/_design/{ddoc}/_list/{func}/{view}	
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "testdoc" into tDocID
+     put "list" into tOptions["ddocfunc"]
+     put "myspeciallist" into tOptions["ddocname"]
+     put "view" into tOptions["ddocxtend"]
+     put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
+===POST /{db}/_design/{ddoc}/_list/{func}/{view}	
  	   --NOT IMPLEMENTED YET
  	
-/{db}/_design/{ddoc}/_rewrite/{path}	
-ANY /{db}/_design/{ddoc}/_rewrite/{path}	Rewrites HTTP request for the specified path by using stored routing rules
+===/{db}/_design/{ddoc}/_rewrite/{path}	
+===ANY /{db}/_design/{ddoc}/_rewrite/{path}	Rewrites HTTP request for the specified path by using stored routing rules
  	   --NOT IMPLEMENTED YET
  	
 /{db}/_design/{ddoc}/_show/{func}	
 GET /{db}/_design/{ddoc}/_show/{func}	Executes a show function against null document
- 	   --NOT IMPLEMENTED YET
-POST /{db}/_design/{ddoc}/_show/{func}	
- 	   --NOT IMPLEMENTED YET
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "testdoc" into tDocID
+     put "show" into tOptions["ddocfunc"]
+     put "myshowfunc" into tOptions["ddocname"]
+     put couch.get(design,tURL,tDB,tDocID,tOptions) into zzzPOST /{db}/_design/{ddoc}/_show/{func}	
  	
 /{db}/_design/{ddoc}/_show/{func}/{docid}	
 GET /{db}/_design/{ddoc}/_show/{func}/{docid}	Executes a show function against the specified document
- 	   --NOT IMPLEMENTED YET
-POST /{db}/_design/{ddoc}/_show/{func}/{docid}	
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "testdoc" into tDocID
+     put "show" into tOptions["ddocfunc"]
+     put "myshowfunc" into tOptions["ddocname"]
+     put "4743824238423947234984" into tOptions["ddocxtend"]
+     put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
+===POST /{db}/_design/{ddoc}/_show/{func}/{docid}	
  	   --NOT IMPLEMENTED YET
  	
-/{db}/_design/{ddoc}/_update/{func}	
-POST /{db}/_design/{ddoc}/_update/{func}	Executes an update function
+===/{db}/_design/{ddoc}/_update/{func}	
+===POST /{db}/_design/{ddoc}/_update/{func}	Executes an update function
  	   --NOT IMPLEMENTED YET
  	
-/{db}/_design/{ddoc}/_update/{func}/{docid}	
-PUT /{db}/_design/{ddoc}/_update/{func}/{docid}	Executes an update function against the specified document
+===/{db}/_design/{ddoc}/_update/{func}/{docid}	
+===PUT /{db}/_design/{ddoc}/_update/{func}/{docid}	Executes an update function against the specified document
  	   --NOT IMPLEMENTED YET
  	
 /{db}/_design/{ddoc}/_view/{view}	
 GET /{db}/_design/{ddoc}/_view/{view}	Returns results for the specified stored view
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
-     put couch.post(purge,tURL,tDB)
+     put "testdoc" into tDocID
+     put "view" into tOptions["ddocfunc"]
+     put "myview" into tOptions["ddocname"]
+     put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
+
 ===POST /{db}/_design/{ddoc}/_view/{view}	Returns certain rows for the specified stored view
       -----NOT TESTED
 
