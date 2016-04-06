@@ -104,6 +104,18 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 	* https://github.com/bhall2001/fastjson
 	* https://github.com/luxlogica/easyjson
 
+###To-Do List (Functions that still need to be implemented/tested)
+- doc attachments (put, delete)
+- design docs (delete)
+- design docs: show (get,post)
+- design docs: show on doc (get,post)
+- design docs: list  (get, post)
+- design docs: list from other doc  (get, post)
+- design docs: rewrite (?)
+- design docs: update (put)
+- design docs: view (post)
+- design docs: attachments (get, put delete)
+
 ###Couch Functions (values for pFunk)
 
 ####Couch System Functions
