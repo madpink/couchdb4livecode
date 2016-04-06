@@ -1,5 +1,5 @@
 /*	  <?lc
-Daybed - A Library for Apache CouchDB  version: 0.6.86   April 4, 2016
+Daybed - A Library for Apache CouchDB  version: 0.6.91   April 5, 2016
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
@@ -81,6 +81,10 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions
    switch pFunk
       case "db"
          put empty into pDocID
+         put empty into pFunk		
+         break
+      case "localdoc"
+         put "_local/" before pDocID
       case "doc"
          put empty into pFunk		
          break
@@ -123,10 +127,15 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
    -----
    local tURL, tResult, tRaw
    -----
-   	   
    switch pFunk
       case "db"
          put empty into pDoc
+         put empty into pFunk
+         break
+      case "localdoc"
+         put empty into pFunk
+         put "_local/" & pDoc["_id"] into pDocID
+         break
       case "doc"
          put empty into pFunk
          put pDoc["_id"] into pDocID
@@ -210,9 +219,15 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions
    -----
    switch pFunk
       case "db"
-         put empty into pDoc
+         put empty into pDocID
+         put empty into pFunk
+         break
       case "doc"
          put empty into pFunk
+         break
+      case "localdoc"
+         put empty into pFunk
+         put "_local/" before pDocID
          break
       default
          put "_" before pFunk
@@ -306,6 +321,9 @@ function couch.db pCouch  ---This is an experimental UberFunction
      
      put couch.db(tCouch) into tRezult
      */
+     -----
+     local tFormat, tResult
+     -----
      put pCouch["options"]["format"] into tFormat
      put "json" into pCouch["options"]["format"]
      switch pCouch["verb"]
@@ -332,6 +350,9 @@ function couch.db pCouch  ---This is an experimental UberFunction
 end couch.db
 
 function couch.cookie pResult
+      -----
+   local tResponse, tLine, tCookie, tReturnHeaders
+   -----
    put j2a(pResult) into tResponse
    if tResponse["ok"] is not true then return "ERROR"
    put libURLLastRHHeaders() into tReturnHeaders
@@ -347,6 +368,9 @@ function couch.cookie pResult
 end couch.cookie
 
 function couch.userDB pUsername
+   -----
+   local tDBName, tUser
+   -----
    put "user_" into tDBName
    put urlencode(pUsername) into tUser
    replace "%40" with "(at)" in tUser
@@ -357,6 +381,9 @@ function couch.userDB pUsername
 end couch.userDB
 
 function couch.peruserDB pUsername
+   -----
+   local tDBName, temp
+   -----
    ---requires "couchperuser" daemon to be installed
    put binaryDecode("H*",pUsername,tDBName) into temp
    put "user_" before tDBName
@@ -364,7 +391,9 @@ function couch.peruserDB pUsername
 end couch.peruserDB
 
 function couch.simplearray pKey pDoc
-   local tJson	     
+   -----
+   local tJson, tCount
+   -----
    put the number of lines in the keys of pDoc into tCount
    put "{"&quote&pKey&quote&colon&" [" into tJson
    repeat with x=1 to tCount
