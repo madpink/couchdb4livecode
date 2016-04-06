@@ -51,9 +51,8 @@ DELETE /_config/{section}/{key}	Removes the current setting
 
 /_db_updates	
 GET /_db_updates	Return the server changes of databases
-     ----NOT WORKING
      put "http://127.0.0.1:5984/" into tURL
-     put couch.get(db_updates,tURL)
+     put couch.get("db_updates",tURL)
 
 /_log	
 GET /_log	Returns the server log file
@@ -62,22 +61,31 @@ GET /_log	Returns the server log file
      
 /_replicate	
 POST /_replicate	Starts or cancels the replication
-      -----NOT WORKING
-
+     put "http://127.0.0.1:5984/" into tURL
+     put "test1" into tDoc["source"]
+     put "http://192.168.42.23:5984/test2" into tDoc["target"]
+     put couch.post(restart,tURL,,tDoc)
+     
 /_restart	
 POST /_restart	Restarts the server
      put "http://127.0.0.1:5984/" into tURL
      put couch.post(restart,tURL)
   
 /_session	
-===GET /_session	Returns Cookie-based login user information
+GET /_session	Returns Cookie-based login user information
+     put "http://127.0.0.1:5984/" into tURL
+     put couch.get("session",tURL) into tInfo
+
 POST /_session	Authenticates user by Cookie-based user login
      put "http://127.0.0.1:5984/" into tURL
      put "admin" into pDoc["name"]     
      put "passw0rd" into pDoc["password"]
      put couch.post("session",tURL,,pDoc) into theCookie
           ---returns a string with the cookie in it
-===DELETE /_session	Logout Cookie-based user
+
+DELETE /_session	Logout Cookie-based user
+     put "http://127.0.0.1:5984/" into tURL
+     put couch.delete("session",tURL) into tInfo
 
 /_stats	
 GET /_stats	Returns server statistics
@@ -166,16 +174,36 @@ POST /{db}/_ensure_full_commit	Makes sure all uncommitted changes are written an
      put "testdb" into tDB
      put couch.post(ensure_full_commit,tURL,tDB)
       
-===/{db}/_local/{docid}	
-===GET /{db}/_local/{docid}	Returns the latest revision of the non-replicated document
-===PUT /{db}/_local/{docid}	Inserts a new version of the non-replicated document
-===DELETE /{db}/_local/{docid}	Deletes the non-replicated document
-===      -----NOT TESTED (REPLICATION NEEDS TO BE IN EFFECT)
-      
-===/{db}/_missing_revs	
-===POST /{db}/_missing_revs	By given list of document revisions, returns the document revisions that do not exist in the database
-===      -----NOT TESTED (REPLICATION NEEDS TO BE IN EFFECT)
-      
+/{db}/_local/{docid}	
+GET /{db}/_local/{docid}	Returns the latest revision of the non-replicated document
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "0dc77cd3-389b-43c1-aef4-e2a5a31eef72" into tDocID
+     put couch.get("localdoc",tURL,tDB,tDocID)
+
+PUT /{db}/_local/{docid}	Inserts a new version of the non-replicated document
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "somedata" into tDoc["somekey"]
+     put "otherdata" into tDoc["otherkey"]
+     put couch.put("localdoc",tURL,tDB,tDoc)  
+
+DELETE /{db}/_local/{docid}	Deletes the non-replicated document
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "0dc77cd3-389b-43c1-aef4-e2a5a31eef72" into tDocID
+     put "1-e0af530ae2775044d7b2db4c91cc18a1" into tParams["rev"]
+     put couch.delete("localdoc",tURL,tDB,tDocID,tParams)      
+
+/{db}/_missing_revs	
+POST /{db}/_missing_revs	By given list of document revisions, returns the document revisions that do not exist in the database
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "c3f2c12bc8c242826e1849097900091d" into tID
+     put "3-b06fcd1c1c9e0ec7c480ee8aa467bf3b" into tDoc[tID][1]
+     put "4-0e871ef78849b0c206091f1a7af6ec41" into tDoc[tID][1]
+     put couch.post("missings_revs",tURL,tDB,tDocIDs)
+     
 /{db}/_purge	
 POST /{db}/_purge	Purges some historical documents entirely from database history
      put "http://127.0.0.1:5984/" into tURL
@@ -186,8 +214,13 @@ POST /{db}/_purge	Purges some historical documents entirely from database histor
    
 /{db}/_revs_diff	
 POST /{db}/_revs_diff	By given list of document revisions, returns differences between the given revisions and ones that are in the database
-===      -----NOT TESTED (REPLICATION NEEDS TO BE IN EFFECT)
-      
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put "c3f2c12bc8c242826e1849097900091d" into tID
+     put "3-b06fcd1c1c9e0ec7c480ee8aa467bf3b" into tDoc[tID][1]
+     put "4-0e871ef78849b0c206091f1a7af6ec41" into tDoc[tID][1]
+     put couch.post("revs_diff",tURL,tDB,tDocIDs)
+     
 /{db}/_revs_limit	
 GET /{db}/_revs_limit	Returns the limit of historical revisions to store for a single document in the database
      put "http://127.0.0.1:5984/" into tURL
@@ -212,13 +245,19 @@ PUT /{db}/_security	Sets the special security object for the database
      put "developer" into tDoc["members"]["roles"][1]
      put couch.put(security,tURL,tDB,tDoc)
  	
-===/{db}/_temp_view	
-===POST /{db}/_temp_view	Executes a given view function for all documents and returns the result
- 	   --NOT IMPLEMENTED YET
+/{db}/_temp_view	
+POST /{db}/_temp_view	Executes a given view function for all documents and returns the result
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+ 	  put "function(doc) { if (doc.value) { emit(doc.value, null); } }" into tDoc["map"] 
+     put "_count" into tDoc["_reduce"]
+     put couch.post("temp_view",tURL,tDB,tDoc)
  	
-===/{db}/_view_cleanup	
-===POST /{db}/_view_cleanup	Removes view files that are not used by any design document
- 	   --NOT IMPLEMENTED YET
+/{db}/_view_cleanup	
+POST /{db}/_view_cleanup	Removes view files that are not used by any design document
+     put "http://127.0.0.1:5984/" into tURL
+     put "testdb" into tDB
+     put couch.post("view_cleanup",tURL,tDB)
  	
 DOCUMENT API
   
@@ -241,13 +280,10 @@ DELETE /{db}/{docid}	Deletes the document
      put "1-e0af530ae2775044d7b2db4c91cc18a1" into tParams["rev"]
      put couch.delete(doc,tURL,tDB,tDocID,tParams)
 
-/{db}/{docid}/{attname}	
-GET /{db}/{docid}/{attname}	Gets the attachment of a document
- 	   --NOT IMPLEMENTED YET
-PUT /{db}/{docid}/{attname}	Adds an attachment of a document
- 	   --NOT IMPLEMENTED YET
-DELETE /{db}/{docid}/{attname}	Deletes an attachment of a document
- 	   --NOT IMPLEMENTED YET
+===/{db}/{docid}/{attname}	
+===GET /{db}/{docid}/{attname}	Gets the attachment of a document     
+===PUT /{db}/{docid}/{attname}	Adds an attachment of a document
+===DELETE /{db}/{docid}/{attname}	Deletes an attachment of a document
 
 DESIGN DOCUMENT API
 
@@ -315,13 +351,10 @@ GET /{db}/_design/{ddoc}/_view/{view}	Returns results for the specified stored v
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put couch.post(purge,tURL,tDB)
-POST /{db}/_design/{ddoc}/_view/{view}	Returns certain rows for the specified stored view
+===POST /{db}/_design/{ddoc}/_view/{view}	Returns certain rows for the specified stored view
       -----NOT TESTED
 
-/{db}/_design/{ddoc}/{attname}	
-GET /{db}/_design/{ddoc}/{attname}	Gets the attachment of a design document
- 	   --NOT IMPLEMENTED YET
-PUT /{db}/_design/{ddoc}/{attname}	Adds an attachment of a design document
- 	   --NOT IMPLEMENTED YET
-DELETE /{db}/_design/{ddoc}/{attname}	Deletes an attachment of a design document
- 	   --NOT IMPLEMENTED YET
+===/{db}/_design/{ddoc}/{attname}	
+===GET /{db}/_design/{ddoc}/{attname}	Gets the attachment of a design document  
+===PUT /{db}/_design/{ddoc}/{attname}	Adds an attachment of a design document
+===DELETE /{db}/_design/{ddoc}/{attname}	Deletes an attachment of a design document
