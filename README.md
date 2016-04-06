@@ -1,6 +1,6 @@
 # couchdb4livecode 
 
-Daybed - A Library for Apache CouchDB
+Daybed - A Library for Apache CouchDB  version: 0.6.95   April 5, 2016
 
 ###Main Functions:
 
