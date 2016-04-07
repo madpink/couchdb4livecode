@@ -1,6 +1,6 @@
 # couchdb4livecode 
 
-Daybed - A Library for Apache CouchDB  version: 0.6.95   April 5, 2016
+Daybed - A Library for Apache CouchDB  version: 0.7.101   April 7, 2016
 
 ###Main Functions:
 
@@ -35,22 +35,34 @@ Daybed - A Library for Apache CouchDB  version: 0.6.95   April 5, 2016
 	* use the pDocID param to specify the name of a design document being called
 		
 * **pDoc** - (for put and post functions) array containing the data being converted into a document for the database
-	* should be blank for system functions, must be included in document and design document (also used in a db function)
+	* should be blank for system functions
+	* required for document and design document (also used in a db function)
 
 * **pParams** - an array with any OPTIONAL parameters, with the parameter as a key.
 	* These parameters are specified in the CouchDB API
 	* For example:  to download documents when running the \_all\_docs function, and limit the list to only 10 records:
-		* `put true into tParams["include\_docs"]`
-     	* `put 10 into tParams["limit"]`
+		* `put true into pParams["include\_docs"]`
+     	* `put 10 into pParams["limit"]`
 	* Example, to include the revision number for a document
-     	* `put "13-8j4f9438jf3498j98fy39d23d" into tParams["rev"]`
+     	* `put "13-8j4f9438jf3498j98fy39d23d" into pParams["rev"]`
 
 * **pOptions** - (optional) header options, including authentication, config values and return format
 	* For Design Documents, use the following options:
 		* pOptions["ddocfunc"] for the function being called (info, view, show, list, update)
 		* pOptions["ddocname"] for the name of the specific function programmed in the ddoc
 		* pOptions["ddocxtend"] and pOptions["ddocxtend2"] for further extended URLs
-
+	* For Authentication, use the following options:
+		* pOptions["authtype"] for the type of authentication being used (login, encoded, cookie)
+		* pOptions["authval"] with the login, encoded login or cookie value 
+	* To set the return format:
+		* pOptions["format"] with a valid format value (array, rawjson, prettyjson)
+	* When setting \_config values:
+		* pOptions["key"] with the key to be set
+		* pOptions["value"] with the value to set it to
+	* When specifying an attachment:
+		* pOptions["attachment"] with the file name in DB
+		* pOptions["destination"] with the destination location (include filename)		
+		
 ###Other Functions/Parameters
 
 ####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
@@ -81,20 +93,23 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 	* "http://admin:passw0rd@192.168.0.42:5984/"
 
 2. Use the pOptions parameter, and the script will encode the username and password into the httpheaders:
-	* `put "admin" into pOptions["user"]`
-	* `put "passw0rd" into pOptions["pass"]`
+	* `put "admin:passw0rd" into pOptions["authval"]`
+	* `put "login" into pOptions["authtype"]`
 
 3. Use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
 	* for example, put base64encode("username:password") will yield the string dXNlcm5hbWU6cGFzc3dvcmQ=
-	* `put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["userpasscode"]`
+	* `put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["authval"]`
+	* `put "encoded" into pOptions["authtype"]`
 
 4. Use cookies/sessions... 
 	* First  get cookie by posting username and password to sessions
 		* `put "admin" into pDoc["name"]     `
 		* `put "passw0rd" into pDoc["password"]`
-   		* `put couch.post("session",tURL,,pDoc) into theCookie`
+   	* `put couch.post("session",tURL,,pDoc) into theCookie`
 	* Store it somewhere. For each subsequent call, send theCookie in pOptions
-   		* `put theCookie into pOptions["cookie"]`
+   	* `put theCookie into pOptions["authval"]`
+		* `put "cookie" into pOptions["authtype"]`
+
 
 ###Return Format
 	* include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
@@ -102,20 +117,18 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 	* if pOptions["format"] is blank, then "preferredFormat" will be used
 	* if neither has a value, then "array" will be used
 
-
 * NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
 	* https://github.com/bhall2001/fastjson
 	* https://github.com/luxlogica/easyjson
 
 ###To-Do List (Functions that still need to be implemented/tested)
-- doc attachments (put)
-- design docs: show (post)
-- design docs: show on doc (post)
-- design docs: list  (post)
-- design docs: list from other doc  (post)
-- design docs: update (put)
-- design docs: view (post)
-- design docs: attachments (get, put, delete)
+- doc/ddoc attachments (put)
+
+###To-Do List (Extra functions)
+- Offline Syncable database
+- Couch based message queueing system
+- Daybed Toolbox
+- More backendian services
 
 ###Couch Functions (values for pFunk)
 
