@@ -1,5 +1,5 @@
 /*	  <?lc
-Daybed - A Library for Apache CouchDB  version: 0.8.113  April 9, 2016
+Daybed - A Library for Apache CouchDB  version: 0.9.142   April 10, 2016
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
@@ -123,7 +123,7 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                break
           case "attach" 
                put empty into pFunk
-               put pOptions["docid"] & "/" & pOptions["attachment"] into pDocID
+               put pOptions["docid"] & "/" & pOptions["attachname"] into pDocID
                break
           case "design"
           case "ddoc"
@@ -148,11 +148,14 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                put "_" before pFunk
                break
      end switch
-     --     if pOptions["attachments"] is not empty then 
-     --          put couch.attachments(pOptions["attachments"]) into pDoc["_attachments"]
-     --     end if
+     
+     if pOptions["attachments"] is not empty then 
+          put couch.attachments(pOptions["attachments"]) into pDoc["_attachments"]
+     end if
+     
      couch.setHeaders pOptions
      put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+     
      switch tFunktion
           case "_config"
                put quote & pOptions["value"] & quote into pDoc
@@ -162,7 +165,7 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                put pDoc into URL(tURL)
                break
           case "attach"
-               put "binfile:" & pOptions["attachpath"] into tPath
+               put couch.aType(pOptions["attachmode"],pOptions["attachpath"]) into tPath
                put URL(tPath) into URL(tURL)
                break
           default
@@ -312,6 +315,14 @@ function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberN
      end switch
      return couch.returnFormat(tResult,returnFormat)
 end couch.securedb
+
+function couch.getrev pURL pDB pDocID pOptions
+     put pOptions["authtype"] into tOptions["authtype"]
+     put pOptions["authval"] into tOptions["authval"]
+     put "array" into tOptions["format"]
+     put couch.get("doc",pURL,pDB,pDocID,tOptions) into tArray
+     return tArray["_rev"]
+end couch.getrev
 
 on ___CouchDB_Experimental_Functions___
 end ___CouchDB_Experimental_Functions___
@@ -495,12 +506,41 @@ end ___CouchDB_Internal_Functions___
 function couch.attachments pAtt
      repeat for each key tFile in pAtt
           put tFile into tFileName
-          put "binfile:" &  pAtt[tFile]["path"] into tFilePath
+          switch pAtt[tFile]["mode"]
+               case "ascii"
+               case "text"
+                    put "file:" &  pAtt[tFile]["path"] into tFilePath
+                    break
+               default
+                    put "binfile:" &  pAtt[tFile]["path"] into tFilePath
+                    break
+          end switch
+          
+          if pAtt[tFile]["mime"] is empty then
+               put contentTypeCheck(tFile,pAtt[tFile]["mode"]) into tAttachMe[tFileName]["content_type"]
+          else
+               put pAtt[tFile]["mime"] into tAttachMe[tFileName]["content_type"]
+          end if
+          
           put base64encode(url (tFilePath)) into tAttachMe[tFileName]["data"]
-          put pAtt[tFile]["mime"] into tAttachMe[tFileName]["content_type"]
      end repeat
      return tAttachMe
 end couch.attachments
+
+function couch.aType pType pPath
+     switch pType
+          case "bin"
+          case "binary"
+               put "binfile:" & pPath into pPath
+               break
+          case "text"
+          case "ascii"
+          default
+               put "file:" & pPath into pPath
+               break
+     end switch
+     return pPath
+end couch.aType
 
 function couch.ddoc pDocID pOptions
      if pDocID is empty then put pOptions["docid"] into pDocID
@@ -512,14 +552,6 @@ function couch.ddoc pDocID pOptions
      if pOptions["attachment"] is not empty then put "/" & pOptions["attachment"] after pDocID
      return pDocID
 end couch.ddoc
-
-function couch.getrev pURL pDB pDocID pOptions
-     put pOptions["authtype"] into tOptions["authtype"]
-     put pOptions["authval"] into tOptions["authval"]
-     put "array" into tOptions["format"]
-     put couch.get("doc",pURL,pDB,pDocID,tOptions) into tArray
-     return tArray["_rev"]
-end couch.getrev
 
 function couch.cookie pResult
      -----
@@ -554,12 +586,16 @@ function couch.simplearray pKey pDoc
 end couch.simplearray
 
 command couch.setHeaders pOptions
-     local couchHeaders,tUser,tPass
-     if pOptions["mimetype"] is not empty then 
-          put "Content-Type:"&&pOptions["mimetype"] into couchHeaders
-     else
+     -----
+     local couchHeaders
+     -----
+     if pOptions["attachname"] is empty then 
           put "Accept: application/json, text/plain, text/event-stream"&cr into couchHeaders
           put "Content-Type: application/json" after couchHeaders
+     else if pOptions["attachtype"] is empty then
+          put "Content-Type:"&&contentTypeCheck(pOptions["attachname"],pOptions["attachmode"]) into couchHeaders -- pOptions["attachtype"] 
+     else
+          put "Content-Type:"&&pOptions["attachtype"] into couchHeaders
      end if
      switch pOptions["authtype"]
           case "login"
@@ -581,8 +617,8 @@ function couch.DBURL pURL pDB pParams pFunk pDocID
      ifNotEmptyAppend pDB,pURL,slash
      ifNotEmptyAppend pFunk,pURL,slash
      ifNotEmptyAppend pDocID,pURL,slash
-     if pParams is not empty then put couch.parseParams(pParams) after pURL
      if char -1 of pURL is slash then put empty into char -1 of pURL
+     if pParams is not empty then put couch.parseParams(pParams) after pURL
      return pURL
 end couch.DBURL
 
@@ -597,7 +633,6 @@ function couch.parseParams pParamArray
           put x & "=" & pParamArray[x] after tParamString
           put "&" after tParamString
      end repeat
-     
      return char 1 to -2 of tParamString
 end couch.parseParams
 	
@@ -693,14 +728,6 @@ function keyVal pKey pVal
      return tReturn
 end keyVal  
 
---function ifEmptyFill pCouchSent pCouchLoad
---     if pCouchSent is empty then
---          return pCouchLoad
---     else
---          return pCouchSent
---     end if
---end ifEmptyFill
-
 command  ifEmptyFill @pFillMe pValue
      if pFillMe is empty then put pValue into pFillMe
 end ifEmptyFill
@@ -723,6 +750,137 @@ function convertParams pParam
      end repeat
      return temp
 end convertParams
+
+function contentTypeCheck pFileName pType
+     set itemdel to "."
+     put item -1 of pFileName into tFileExt
+     switch tFileExt
+          case "ai"
+          case "eps"
+          case "ps"
+               return "application/postscript"
+               break
+          case "aif"
+          case "aiff"
+               return "audio/aiff"
+               break
+          case "asp"
+               return "text/asp"
+               break
+          case "avi"
+               return "video/avi"
+               break
+          case "bmp"
+               return "image/bmp"
+               break
+          case "class"
+               return "application/java"
+               break
+          case "css"
+               return "text/css"
+               break
+          case "doc"
+          case "word"
+               return "application/msword"
+               break
+          case "exe"
+               return "application/octet-stream"
+               break
+          case "gif"
+               return "image/gif"
+               break
+          case "htm"
+          case "html"
+          case "htx"
+          case "shtml"
+               return "text/html"
+               break
+          case "ico"
+               return "image/x.icon"
+               break
+          case "jpeg"
+          case "jpg"
+               return "image/jpeg"
+               break
+          case "js"
+               return "application/javascript"
+               break
+          case "log"
+          case "lst"
+          case "text"
+          case "txt"
+               return "text/plain"
+               break
+          case "m2a"
+          case "m2v"
+          case "mpa"
+          case "mpeg"
+          case "mpg"
+               return "video/mpeg"
+               break
+          case "mid"
+          case "midi"
+               return "audio/midi"
+               break
+          case "moov"
+          case "mov"
+          case "qt"
+               return "video/quicktime"
+               break
+          case "mp3"
+               return "audio/mpeg3"
+               break
+          case "pdf"
+               return "application/pdf"
+               break
+          case "pic"
+          case "pict"
+               return "image/pict"
+               break
+          case "png"
+               return "image/png"
+               break
+          case "ppt"
+               return "application/powerpoint"
+               break
+          case "rtf"
+               return "text/richtext"
+               break
+          case "svg"
+               return "image/svg+xml"
+               break
+          case "tif"
+          case "tiff"
+               return "image/tiff"
+               break
+          case "ttf"
+               return "application/x-font-ttf"
+               break
+          case "woff"
+               return "application/x-font-woff"
+               break
+          case "xls"
+               return "application/excel"
+               break
+          case "xml"
+               return "text/xml"
+               break
+          case "zip"
+               return "application/zip"
+               break
+          default
+               switch pType
+                    case "text"
+                    case "ascii"
+                         return "text/plain"
+                         break
+                    default
+                         return "application/octet-stream"
+                         break
+               end switch
+               break
+     end switch
+end contentTypeCheck
 
 on ___Prettify_JSON___
 end ___Prettify_JSON___

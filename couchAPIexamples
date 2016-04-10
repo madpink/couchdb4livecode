@@ -288,14 +288,15 @@ GET /{db}/{docid}/{attname}	Gets the attachment of a document
      put "my_cat.jpg" into tOptions["attachment"]
      put couch.get(attach,tURL,tDB,tDocID)
 
-===PUT /{db}/{docid}/{attname}	Adds an attachment of a document
+PUT /{db}/{docid}/{attname}	Adds an attachment of a document
      put "http://127.0.0.1:5984/" into tURL
      put "test_suite_db2" into tDB
      put "zxsd3324d" into tOptions["docid"]
-     put "my_cat.jpg" into tOptions["attachment"]
+     put "my_cat.jpg" into tOptions["attachname"]
      put "1-465aa47fc9a072e79d5898a3257acb4c" intp tParams["rev"]
      put "/User/pink/testdata/my_cat.jpg" into tOptions["attachpath"]
-     put "image/jpg" into tOptions["mimetype"]
+     put "image/jpg" into tOptions["attachtype"]
+     put "bin" into tOptions["attachmode"]
      put couch.get(attach,tURL,tDB)
 
 DELETE /{db}/{docid}/{attname}	Deletes an attachment of a document
@@ -432,7 +433,16 @@ GET /{db}/_design/{ddoc}/{attname}	Gets the attachment of a design document
      put "my_cat.jpg" into tOptions["attachment"]
      put couch.get(design,tURL,tDB,tDocID)
 
-===PUT /{db}/_design/{ddoc}/{attname}	Adds an attachment of a design document
+PUT /{db}/_design/{ddoc}/{attname}	Adds an attachment of a design document
+     put "http://127.0.0.1:5984/" into tURL
+     put "test_suite_db2" into tDB
+     put "_design/mydesigndoc" into tOptions["docid"]
+     put "my_cat.jpg" into tOptions["attachname"]
+     put "1-465aa47fc9a072e79d5898a3257acb4c" intp tParams["rev"]
+     put "/User/pink/testdata/my_cat.jpg" into tOptions["attachpath"]
+     put "image/jpg" into tOptions["attachtype"]
+     put "bin" into tOptions["attachmode"]
+     put couch.get(attach,tURL,tDB)
 
 DELETE /{db}/_design/{ddoc}/{attname}	Deletes an attachment of a design document
      put "http://127.0.0.1:5984/" into tURL

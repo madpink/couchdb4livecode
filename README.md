@@ -1,6 +1,6 @@
 # couchdb4livecode 
 
-Daybed - A Library for Apache CouchDB  version: 0.7.101   April 7, 2016
+Daybed - A Library for Apache CouchDB  version: 0.9.142   April 10, 2016
 
 ###Main Functions:
 
@@ -59,11 +59,26 @@ Daybed - A Library for Apache CouchDB  version: 0.7.101   April 7, 2016
 	* When setting \_config values:
 		* pOptions["key"] with the key to be set
 		* pOptions["value"] with the value to set it to
-	* When specifying an attachment:
+	* When PUTting an attachment (using the "attach" function):
+		* pOptions["attachname"] with the file name to be used in CouchDB
+		* pOptions["attachpath"] with the full path to the file being uploaded
+		* pOptions["attachmode"] with "bin" or "text", "bin" will be used if left blank
+		* pOptions["attachtype"] with the MIME content-type, for example "image/jpg" or "application/pdf"
+			* If left blank, the script will attempt to fill in an applicable type
+	* When PUTting an attachment (inline):
+		* Repeat for each file to be included
+		* `pOptions["attachments"][filename]["path"]` with the full file path of the file to be uploaded
+		* `pOptions["attachments"][filename]["mime"]` with the MIME content-type of the file
+		* `pOptions["attachments"][filename]["mode"]` with "bin" or "text", with "bin" used as default
+	* When GETting an attachment:
 		* pOptions["attachment"] with the file name in DB
 		* pOptions["destination"] with the destination location (include filename)		
 		
 ###Other Functions/Parameters
+
+####`couch.getrev(pURL,pDB,pDocID,pOptions)`
+This function returns the most recent revision number for the specified document.
+This can be used to 
 
 ####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
 The couch.securedb function sets the "\_security" document for the specified database.
@@ -109,6 +124,17 @@ if the CouchDB URL requires authentication, it can be achieved in one of two way
 	* Store it somewhere. For each subsequent call, send theCookie in pOptions
    	* `put theCookie into pOptions["authval"]`
 		* `put "cookie" into pOptions["authtype"]`
+
+###Adding Attachments
+	* Files can be attached to documents inline or through the standalone API
+	* In order to properly view a document online (e.g. - through a CouchApp) the proper MIME-Type needs to be specified
+	* To use the standalone API:
+		* Must specify the revision number in pParams["rev"]
+		* Each attachment needs to be added seperately
+		* Use these options: pOptions["attachname"], pOptions["attachpath"], pOptions["attachmode"], pOptions["attachtype"] 
+	* To add documents inline:
+		* Use the options" pOptions["attachments"] with a seperate key for each file
+		* If the document exists, the entire document needs to be reuploaded including the 
 
 
 ###Return Format
