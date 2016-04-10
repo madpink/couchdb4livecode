@@ -1,134 +1,52 @@
 /*	  <?lc
-Daybed - A Library for Apache CouchDB  version: 0.7.101   April 7, 2016
+Daybed - A Library for Apache CouchDB  version: 0.8.113   April 9, 2016
 
-###Main Functions:
+contact:   pink@mad.pink (aka Greg Miller)
+	
+This is a simple library that calls CouchDB's REST functions.
+	
+---FUNCTION PARAMETERS---
 
-####`couch.get(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
-* The couch.get function retrives a document, multiple documents, or information.
+pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
 
-####`couch.put(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
-* The couch.put function inserts a value or a document into a database.
+pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
+For example:   "http://192.168.23.42:5984/"
+With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
 
-####`couch.post(pFunk,pURL,pDB,pDoc,pParams,pOptions,pFormat)`
-* The couch.post function inserts multiple documents or values into a database.
+pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
 
-####`couch.delete(pFunk,pURL,pDB,pDocID,pParams,pOptions,pFormat)`
-* The couch.delete function deletes a document or database, or a config key.
-	* Note: the database is really deleted, however the document can still be retrieved if the id and rev are known.
+pDocID - (required for most get functions) the document "_id" being retrieved
+for design documents, use the pDocID param to specify it
+for selecting a view from a design document, add a slash with the view name to pDocID, for example:
+for the following view call /_design/querymon/_view/phone
+put querymon/phone into pDocID
+			
+pDoc - (required for most put and post functions) array containing the data being converted into a document for the database
 
-###Function Parameters
+pParams - an array with any OPTIONAL parameters, with the parameter as a key.
+For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
+put true into tParams["include_docs"]
+put 10 into tParams["limit"]
 
-* **pFunk** (always required) Couch function being called, without the leading underscore, for example "all\_docs"
-	* a list is included below of functions that have been tested
-	* there are four categories of functions:  system, database, document, design document
+pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
+also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
+the stack can have a customProperty called "preferredFormat" which can be one of those three values,
+if pOptions["format"] is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
 
-* **pURL** (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
-	* For example:   "http://192.168.23.42:5984/"
-	* With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
+couch.adduser is for creating a new user in the "_users" database
 
-* **pDB** (required when acting on or retrieving from a database) - the name of the database being accessed
-	* should be blank for system functions, must be included for database, document, and design document
-		
-* **pDocID**  (for get and delete functions) the document "\_id" being retrieved
-	* should be blank for system and database functions, must be included for document and design document 
-	* use the pDocID param to specify the name of a design document being called
-		
-* **pDoc** - (for put and post functions) array containing the data being converted into a document for the database
-	* should be blank for system functions
-	* required for document and design document (also used in a db function)
+if you have "couchperuser" installed (https://github.com/etrepum/couchperuser) then use the 
+couch.peruserDB function to find the database name assoc
 
-* **pParams** - an array with any OPTIONAL parameters, with the parameter as a key.
-	* These parameters are specified in the CouchDB API
-	* For example:  to download documents when running the \_all\_docs function, and limit the list to only 10 records:
-		* `put true into pParams["include\_docs"]`
-     	* `put 10 into pParams["limit"]`
-	* Example, to include the revision number for a document
-     	* `put "13-8j4f9438jf3498j98fy39d23d" into pParams["rev"]`
+NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
+https://github.com/bhall2001/fastjson
+https://github.com/luxlogica/easyjson
 
-* **pOptions** - (optional) header options, including authentication, config values and return format
-	* For Design Documents, use the following options:
-		* pOptions["ddocfunc"] for the function being called (info, view, show, list, update)
-		* pOptions["ddocname"] for the name of the specific function programmed in the ddoc
-		* pOptions["ddocxtend"] and pOptions["ddocxtend2"] for further extended URLs
-	* For Authentication, use the following options:
-		* pOptions["authtype"] for the type of authentication being used (login, encoded, cookie)
-		* pOptions["authval"] with the login, encoded login or cookie value 
-	* To set the return format:
-		* pOptions["format"] with a valid format value (array, rawjson, prettyjson)
-	* When setting \_config values:
-		* pOptions["key"] with the key to be set
-		* pOptions["value"] with the value to set it to
-	* When specifying an attachment:
-		* pOptions["attachment"] with the file name in DB
-		* pOptions["destination"] with the destination location (include filename)		
-		
-###Other Functions/Parameters
-
-####`couch.securedb(pFunk,pURL,pDB,pOptions,pAdminNames,pAdminRoles,pMemberNames,pMemberRoles)`
-The couch.securedb function sets the "\_security" document for the specified database.
-* pFunk - "set" (replace current security), "add" adds user/roles to existing security, "delete" removes user/roles from existing
-* pAdminNames: sets the given names up with admin rights (read,write,delete)
-* pAdminRoles: sets the given user roles up with admin rights (read,write,delete)
-* pMemberNames: sets the given names up with member rights (read only)
-* pMemberRoles: sets the given user roles up with member rights (read only)
-
-####`couch.adduser(pURL,pUser,pPass,pOptions,pAddDB)`
-The couch.adduser function inserts a new record into the "\_users" database, optionally creates a database for the user, and 
-sets the new user as the admin and member (which makes that user the only one who can access it).
-* pUsername: Username of the person signing up.
-* pPassword: Password for the account
-* pOptions["roles"]: can be used to assign the user to roles, must be in a numbered array
-* pAddDB: if true, adds a database with the user's name and secures it
-* Note:  only an admin can create a user
-
-####`couch.peruserDB(pUsername)`
-Requires "couchperuser" to be installed (https://github.com/etrepum/couchperuser)
-The couch.peruserDB function returns the database name associated with the username specified.
-
-###Authentication: 
-if the CouchDB URL requires authentication, it can be achieved in one of two ways:
-
-1. Include the username and password as part of the URL, for example:
-	* "http://admin:passw0rd@192.168.0.42:5984/"
-
-2. Use the pOptions parameter, and the script will encode the username and password into the httpheaders:
-	* `put "admin:passw0rd" into pOptions["authval"]`
-	* `put "login" into pOptions["authtype"]`
-
-3. Use the pOptions parameter with a base 64 encoded username:password, which will be added to the httpheaders:
-	* for example, put base64encode("username:password") will yield the string dXNlcm5hbWU6cGFzc3dvcmQ=
-	* `put "dXNlcm5hbWU6cGFzc3dvcmQ=" into pOptions["authval"]`
-	* `put "encoded" into pOptions["authtype"]`
-
-4. Use cookies/sessions... 
-	* First  get cookie by posting username and password to sessions
-		* `put "admin" into pDoc["name"]     `
-		* `put "passw0rd" into pDoc["password"]`
-   	* `put couch.post("session",tURL,,pDoc) into theCookie`
-	* Store it somewhere. For each subsequent call, send theCookie in pOptions
-   	* `put theCookie into pOptions["authval"]`
-		* `put "cookie" into pOptions["authtype"]`
-
-
-###Return Format
-	* include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
-	* the stack can have a customProperty called "preferredFormat" which can be one of those three values,
-	* if pOptions["format"] is blank, then "preferredFormat" will be used
-	* if neither has a value, then "array" will be used
-
-* NOTE: a library for decoding and encoding JSON needs to be added, I recommend one of these:
-	* https://github.com/bhall2001/fastjson
-	* https://github.com/luxlogica/easyjson
-
-###To-Do List (Functions that still need to be implemented/tested)
-- doc/ddoc attachments (put)
-
-###To-Do List (Extra functions)
-- Offline Syncable database
-- Couch based message queueing system
-- Daybed Toolbox
-- More backendian services
+TO-DO 
+--offline syncable database
+--need to upload DayBed Toolbox
 */
+
 
 on ___CouchDB_Main_Functions___
 end ___CouchDB_Main_Functions___
@@ -181,7 +99,7 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions
           put URL(tURL) into tResult
      end if
      	
-     return returnFormat(tResult,pOptions["format"])
+     return couch.returnFormat(tResult,pOptions["format"])
 end couch.get
 
 	
@@ -203,13 +121,13 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                put empty into pFunk
                put pDoc["_id"] into pDocID
                break
-          case "attach"  --NOT CURRENTLY WORKING
+          case "attach" 
                put empty into pFunk
                put pOptions["docid"] & "/" & pOptions["attachment"] into pDocID
                break
           case "design"
           case "ddoc"
-               put "_design/" before pDocID
+               put pDoc["_id"] into pDocID
                put couch.ddoc(pDocID,pOptions) into pDocID
                put empty into pFunk
                break
@@ -230,6 +148,9 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                put "_" before pFunk
                break
      end switch
+     --     if pOptions["attachments"] is not empty then 
+     --          put couch.attachments(pOptions["attachments"]) into pDoc["_attachments"]
+     --     end if
      couch.setHeaders pOptions
      put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
      switch tFunktion
@@ -241,10 +162,8 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                put pDoc into URL(tURL)
                break
           case "attach"
-               --put "binfile" & pOptions["attachpath"] into tPath
-               put  URL ("binfile:/User/dapink/Dropbox/bad_luck_friday13.jpg") into tFile
-               --libURLftpUploadFile tFile,tURL
-               put tFile into URL(tURL)
+               put "binfile:" & pOptions["attachpath"] into tPath
+               put URL(tPath) into URL(tURL)
                break
           default
                put a2j(pDoc) into tJson
@@ -253,7 +172,7 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
                break
      end switch
      put the urlResponse into tResult
-     return returnFormat(tResult,pOptions["format"])
+     return couch.returnFormat(tResult,pOptions["format"])
 end couch.put
 
 	
@@ -293,7 +212,7 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions
                return couch.cookie(tResult)
                break
           default
-               return returnFormat(tResult,pOptions["format"])
+               return couch.returnFormat(tResult,pOptions["format"])
                break
      end switch
 end couch.post
@@ -326,7 +245,7 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions
      put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
      delete URL(tURL)
      put the urlResponse into tResult
-     return returnFormat(tResult,pOptions["format"])
+     return couch.returnFormat(tResult,pOptions["format"])
 end couch.delete
 
 function couch.adduser pURL pUser pPass pOptions pAddDB
@@ -347,7 +266,7 @@ function couch.adduser pURL pUser pPass pOptions pAddDB
           put couch.securedb("set",pURL,tDB,pOptions,pUser,,pUser) into tSecure
           put "["&tResult&comma&tNewDB&comma&tResult&"]" into tResult
      end if
-     return returnFormat(tResult,tReturnFormat)
+     return couch.returnFormat(tResult,tReturnFormat)
 end couch.adduser
 
 function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberNames pMemberRoles
@@ -391,29 +310,29 @@ function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberN
                put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
                break
      end switch
-     return returnFormat(tResult,returnFormat)
+     return couch.returnFormat(tResult,returnFormat)
 end couch.securedb
 
-on ___CouchDB_Other_Functions___
-end ___CouchDB_Other_Functions___
+on ___CouchDB_Experimental_Functions___
+end ___CouchDB_Experimental_Functions___
 
 function couch.db pCouch  ---This is an experimental UberFunction
-     /*  This is experimental
-     put "get" into tCouch["verb"]
-     put "http://127.0.0.1:5984" into tCouch["url"]
-     put "doc" into tCouch["funk"]
-     put "bbbbb" into tCouch["docid"]
-     
-     put "login" into tCouch["options"]["authtype"]
-     put "fmulder:trustno1" into tCouch["options"]["authval"]
-     put "array" into tCouch["options"]["format"]
-     
-     put couch.db(tCouch) into tRezult
+     /* 
+     pCouch["verb"]
+     pCouch["url"]
+     pCouch["funk"]
+     pCouch["options"]
+     pCouch["params"]
+     pCouch["doc"]
+     pCouch["docid"]
      */
      -----
      local tFormat, tResult
      -----
      put pCouch["options"]["format"] into tFormat
+     
+     if pCouch["load"] is not empty then put dbdb.useDefaults(pCouch) into pCouch
+     
      put "json" into pCouch["options"]["format"]
      switch pCouch["verb"]
           case "get"
@@ -435,45 +354,8 @@ function couch.db pCouch  ---This is an experimental UberFunction
                put couch.securedb(pCouch["funk"],pCouch["url"],pCouch["db"],pCouch["adminnames"],pCouch["adminroles"],pCouch["membernames"],pCouch["memberroles"]) into tResult
                break
      end switch
-     return returnFormat(tResult,tFormat)
+     return couch.returnFormat(tResult,tFormat)
 end couch.db
-
-function couch.ddoc pDocID pOptions
-     if pDocID is empty then put pOptions["docid"] into pDocID
-     put "_design/" before pDocID
-     if pOptions["ddocfunc"] is not empty then put "/_" & pOptions["ddocfunc"] after pDocID
-     if pOptions["ddocname"] is not empty then put "/" & pOptions["ddocname"] after pDocID
-     if pOptions["ddocxtend"] is not empty then put "/" & pOptions["ddocxtend"] after pDocID
-     if pOptions["ddocxtend2"] is not empty then put "/" & pOptions["ddocxtend2"] after pDocID
-     if pOptions["attachment"] is not empty then put "/" & pOptions["attachment"] after pDocID
-     return pDocID
-end couch.ddoc
-
-function couch.getrev pURL pDB pDocID pOptions
-     put pOptions["authtype"] into tOptions["authtype"]
-     put pOptions["authval"] into tOptios["authval"]
-     put "array" into tOptions["format"]
-     put couch.get("doc",pURL,pDB,pDocID,tOptions) into tArray
-     return tArray["_rev"]
-end couch.getrev
-
-function couch.cookie pResult
-     -----
-     local tResponse, tLine, tCookie, tReturnHeaders
-     -----
-     put j2a(pResult) into tResponse
-     if tResponse["ok"] is not true then return "ERROR"
-     put libURLLastRHHeaders() into tReturnHeaders
-     repeat for each line tLine in tReturnHeaders
-          if tLine begins with "Set-Cookie" then
-               set itemdel to ";"
-               put item 1 of tLine into tLine
-               set itemdel to "="
-               put item 2 of tLine into tCookie
-               return tCookie
-          end if
-     end repeat
-end couch.cookie
 
 function couch.userDB pUsername
      -----
@@ -497,6 +379,165 @@ function couch.peruserDB pUsername
      put "user_" before tDBName
      return tDBName
 end couch.peruserDB
+
+on ___DaybedDB_SettingsFile_Functions___
+end ___DaybedDB_SettingsFile_Functions___
+
+function dbdb.loadSettings
+     if "daybedSettings" is not among the lines of the mainStacks then
+          put getPath() & "/" & "daybedSettings.dbdb" into tFileName
+          if there is no file tFileName then 
+               dbdb.settingsFile
+          else
+               open invisible stack tFileName
+          end if
+     end if
+     put the couchSettings of stack "daybedSettings" into tCouch
+     return tCouch
+end dbdb.loadSettings
+
+command dbdb.saveSettings pSaveMe pOverwrite
+     put dbdb.loadSettings() into tCouchSet
+     put getPath() & "/" & "daybedSettings.dbdb" into tFileName
+     
+     if pOverwrite is true then
+          put pSaveMe into tCouchSet
+     else
+          repeat for each key tKey in pSaveMe
+               put pSaveMe[tKey] into tCouchSet[tKey]
+          end repeat
+     end if
+     set the couchSettings of stack tFileName to tCouchSet
+     save stack tFileName
+end dbdb.saveSettings
+
+command dbdb.addSetting pKey pURL pAuthType pAuthName pDB
+     put dbdb.loadSettings() into tSettings
+     put pURL into tSettings[pKey]["url"]
+     put pAuthType into tSettings[pKey]["options"]["authtype"]
+     put pAuthName into tSettings[pKey]["options"]["authname"]
+     put pDB into tSettings[pKey]["db"]
+     dbdb.saveSettings tSettings
+end dbdb.addSetting
+
+command dbdb.settingsFile
+     put getPath() into tPath
+     if there is no folder tPath then create folder tPath
+     create invisible stack "daybedSettings"
+     put "http://localhost:5984" into tCouch["local"]["url"]
+     set the couchSettings of stack "daybedSettings" to tCouch
+     put tPath & "/" & "daybedSettings.dbdb" into tFile
+     save stack "daybedSettings" as tFile
+end dbdb.settingsFile
+
+function dbdb.useDefaults pCouch
+     put loadCouchSettings() into tCouchSet
+     ifEmptyFill pCouch["url"],tCouchSet[pCouch["load"]]["url"]
+     ifEmptyFill pCouch["options"]["authname"],tCouchSet[pCouch["load"]]["options"]["authname"]
+     ifEmptyFill pCouch["options"]["authtype"],tCouchSet[pCouch["load"]]["options"]["authtype"]
+     ifEmptyFill pCouch["db"],tCouchSet[pCouch["load"]]["db"]
+     return pCouch
+end dbdb.useDefaults
+
+function getPath pMainFolder pSubFolder
+     if pMainFolder is empty then
+          switch the platform
+               case "Win32"
+               case  "MacOS"
+                    put "support" into pMainFolder
+                    ifEmptyFill pSubFolder,"DayBedDB"
+                    break
+               case "iphone"
+               case "android"
+                    put "documents" into pMainFolder
+                    break
+               case "Linux"
+               case "HTML5"
+                    put "home" into pMainFolder
+                    ifEmptyFill pSubFolder,"DayBedDB"
+                    break
+          end switch
+     end if
+     switch pMainFolder
+          case "desktop"
+          case "desk"
+               put (specialfolderpath("Desktop")) into tPathName
+               break
+          case "doc"
+          case "docs"
+          case "documents"
+               put (specialfolderpath("documents")) into tPathName
+               break
+          case "support"
+               put (specialfolderpath("support")) into tPathName
+               break
+          default 
+               put pMainFolder into tPathName
+     end switch
+     ifNotEmptyAppend pSubFolder,tPathName,"/"
+     return tPathName
+end getPath
+
+
+
+on ___CouchDB_Internal_Functions___
+end ___CouchDB_Internal_Functions___
+
+--function useDefaults pCouch
+--     put loadCouchSettings() into tCouchSet
+--     put ifEmptyFill(pCouch["url"],tCouchSet[pCouch["load"]]["url"]) into pCouch["url"]
+--     put ifEmptyFill(pCouch["options"]["authname"],tCouchSet[pCouch["load"]]["options"]["authname"]) into pCouch["options"]["authname"]
+--     put ifEmptyFill(pCouch["options"]["authtype"],tCouchSet[pCouch["load"]]["options"]["authtype"]) into pCouch["options"]["authtype"]
+--     put ifEmptyFill(pCouch["db"],tCouchSet[pCouch["load"]]["db"]) into pCouch["db"]
+--     return pCouch
+--end useDefaults
+
+function couch.attachments pAtt
+     repeat for each key tFile in pAtt
+          put tFile into tFileName
+          put "binfile:" &  pAtt[tFile]["path"] into tFilePath
+          put base64encode(url (tFilePath)) into tAttachMe[tFileName]["data"]
+          put pAtt[tFile]["mime"] into tAttachMe[tFileName]["content_type"]
+     end repeat
+     return tAttachMe
+end couch.attachments
+
+function couch.ddoc pDocID pOptions
+     if pDocID is empty then put pOptions["docid"] into pDocID
+     if char 1 to 7 of pDocID is not "_design" then put "_design/" before pDocID
+     if pOptions["ddocfunc"] is not empty then put "/_" & pOptions["ddocfunc"] after pDocID
+     if pOptions["ddocname"] is not empty then put "/" & pOptions["ddocname"] after pDocID
+     if pOptions["ddocxtend"] is not empty then put "/" & pOptions["ddocxtend"] after pDocID
+     if pOptions["ddocxtend2"] is not empty then put "/" & pOptions["ddocxtend2"] after pDocID
+     if pOptions["attachment"] is not empty then put "/" & pOptions["attachment"] after pDocID
+     return pDocID
+end couch.ddoc
+
+function couch.getrev pURL pDB pDocID pOptions
+     put pOptions["authtype"] into tOptions["authtype"]
+     put pOptions["authval"] into tOptions["authval"]
+     put "array" into tOptions["format"]
+     put couch.get("doc",pURL,pDB,pDocID,tOptions) into tArray
+     return tArray["_rev"]
+end couch.getrev
+
+function couch.cookie pResult
+     -----
+     local tResponse, tLine, tCookie, tReturnHeaders
+     -----
+     put j2a(pResult) into tResponse
+     if tResponse["ok"] is not true then return "ERROR"
+     put libURLLastRHHeaders() into tReturnHeaders
+     repeat for each line tLine in tReturnHeaders
+          if tLine begins with "Set-Cookie" then
+               set itemdel to ";"
+               put item 1 of tLine into tLine
+               set itemdel to "="
+               put item 2 of tLine into tCookie
+               return tCookie
+          end if
+     end repeat
+end couch.cookie
 
 function couch.simplearray pKey pDoc
      -----
@@ -535,23 +576,14 @@ command couch.setHeaders pOptions
 end couch.setHeaders
 
 function couch.DBURL pURL pDB pParams pFunk pDocID
-     -----
-     local tURL
-     -----
      if char 1 to 4 of pURL is not "http" then put "http://" before pURL
-     if char -1 of pURL is not slash then
-          put pURL & slash into tURL
-     else
-          put pURL into tURL
-     end if
-     if pDB is not empty then put pDB after tURL
-     if pDB is not empty and pFunk is not empty then put slash after tURL
-     if pFunk is not empty then put pFunk after tURL
-     if pFunk is not empty and pDocID is not empty then put slash after tURL
-     if pFunk is empty and pDocID is not empty and pDB is not empty then put slash after tURL
-     if pDocID is not empty then put pDocID after tURL
-     if pParams is not empty then put couch.parseParams(pParams) after tURL
-     return tURL
+     if char -1 of pURL is slash then put empty into char -1 of pURL
+     ifNotEmptyAppend pDB,pURL,slash
+     ifNotEmptyAppend pFunk,pURL,slash
+     ifNotEmptyAppend pDocID,pURL,slash
+     if pParams is not empty then put couch.parseParams(pParams) after pURL
+     if char -1 of pURL is slash then put empty into char -1 of pURL
+     return pURL
 end couch.DBURL
 
 	
@@ -562,16 +594,14 @@ function couch.parseParams pParamArray
      if tParamArray is empty then return empty
      put "?" into tParamString
      repeat for each key x in pParamArray
-          add 1 to y
           put x & "=" & pParamArray[x] after tParamString
-          --if y = the paramCount then exit repeat
           put "&" after tParamString
      end repeat
      
      return char 1 to -2 of tParamString
 end couch.parseParams
 	
-function returnFormat pResult pFormat
+function couch.returnFormat pResult pFormat
      -----
      local tFormat
      -----
@@ -596,7 +626,7 @@ function returnFormat pResult pFormat
                return gingerJson(pResult)
                break
      end switch
-end returnFormat
+end couch.returnFormat
 
 on ___Misc_Functions___
 end ___Misc_Functions___
@@ -662,6 +692,24 @@ function keyVal pKey pVal
      put quote & pKey & quote & colon & quote & pVal & quote into tReturn
      return tReturn
 end keyVal  
+
+--function ifEmptyFill pCouchSent pCouchLoad
+--     if pCouchSent is empty then
+--          return pCouchLoad
+--     else
+--          return pCouchSent
+--     end if
+--end ifEmptyFill
+
+command  ifEmptyFill @pFillMe pValue
+     if pFillMe is empty then put pValue into pFillMe
+end ifEmptyFill
+     
+command ifNotEmptyAppend pAppendMe @pAppendTo pDivider
+     if pAppendMe is not empty then 
+          put pAppendTo & pDivider & pAppendMe into pAppendTo
+     end if
+end ifNotEmptyAppend
 
 function convertParams pParam
      -----
