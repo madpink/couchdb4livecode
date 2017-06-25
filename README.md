@@ -1,6 +1,8 @@
 # couchdb4livecode 
 
-Daybed - A Library for Apache CouchDB  version: 0.9.142   April 10, 2016
+Daybed - A Library for Apache CouchDB  version:  1.5.0  June 25, 2017
+
+Note:  FastJSON has been added to the library, with "fast." prefixed to the commands.
 
 ###Main Functions:
 
