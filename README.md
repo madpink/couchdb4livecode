@@ -5,9 +5,9 @@ Daybed - A Library for Apache CouchDB  version:  1.5.0  June 25, 2017
 Instructions for use are available in the wiki:
 https://github.com/madpink/couchdb4livecode/wiki
 
-*  Note:  FastJSON has been appended to the library, and is used by default for JSON encoding and decoding.
+Note:  FastJSON has been appended to the library, and is used by default for JSON encoding and decoding.
 *  The primary commands have "fast." prefixed to the commands to differentiate them from the built in commands (mergJSON).
-*  The original is available here: https://github.com/bhall2001/fastjson
+*  The original is maintained by Bob Hall here: https://github.com/bhall2001/fastjson
 
 I recommend using FastJSON over mergJSON because:
 
