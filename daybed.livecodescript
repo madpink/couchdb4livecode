@@ -314,6 +314,48 @@ function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberN
   return couch.returnFormat(tResult,returnFormat)
 end couch.securedb
 
+on ___CouchDB_Quick_Functions___
+end ___CouchDB_Quick_Functions___
+
+function qouch.getdoc pDocID pCDB
+  put qouch.quickinfo(pCDB) into pCDB
+  return couch.get("doc",pCDB["url"],pCDB["db"],pDocID,pCDB["options"],pCDB["params"])
+end qouch.getdoc
+
+function qouch.putdoc pDoc pCDB
+  put qouch.quickinfo(pCDB) into pCDB
+  return couch.put("doc",pCDB["url"],pCDB["db"],pDoc,pCDB["options"],pCDB["params"])
+end qouch.putdoc
+
+function qouch.alldocs pInclude pCDB
+  put qouch.quickinfo(pCDB) into pCDB
+  if pInclude then put true into pCDB["params"]["include_docs"]
+  return couch.get("alldoc",pCDB["url"],pCDB["db"],,pCDB["options"],pCDB["params"])
+end qouch.alldocs
+
+function qouch.changes pLast pInclude pCDB
+  put qouch.quickinfo(pCDB) into pCDB
+  if pLast is not empty then put pLast into pCDB["params"]["since"]
+  if pInclude then put true into pCDB["params"]["include_docs"]
+  return couch.get("changes",pCDB["url"],pCDB["db"],,pCDB["options"],pCDB["params"])
+end qouch.changes
+
+function qouch.ddoc pDdoc pType pName pInclude pCDB
+  put qouch.quickinfo(pCDB) into pCDB
+  if pInclude then put true into pCDB["params"]["include_docs"]
+  put pType into pCDB["options"]["ddocfunc"]
+  put pName into pCDB["options"]["ddocxtend"]
+  put couch.get("design",pCDB["url"],pCDB["db"],pDdoc,pCDB["options"],pCDB["params"])
+end qouch.ddoc
+
+private function qouch.quickinfo pCDB
+  if pCDB["url"] is empty then put "http://127.0.0.1:5984" into pCDB["url"]
+  if pCDB["db"] then put "appdata" into pCDB["db"]
+  if pCDB["options"]["authval"] then put "admin:trustno1" into pCDB["options"]["authval"]
+  if pCDB["options"]["authtype"] then put "login" into pCDB["options"]["authtype"]
+  return pCDB
+end qouch.quickinfo
+
 on ___Cloudant_Functions___
   /*
   generate API Keys:
@@ -525,7 +567,7 @@ function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther
     put pAuth into tOptions["authval"]
     put "encoded" into tOptions["authtype"]
   end if
-  put base64encode(pUser & colon & pPass) into tSettings["auth"]
+  put couch.authval(pUser,pPass) into tSettings["auth"]
   get binarydecode("H*",pUser,tSettings["db"])
   put pPrefix & "_" before tSettings["db"]
   put pURL into tSettings["url"]
@@ -787,6 +829,7 @@ private function couch.cookie pResult
 end couch.cookie
 
 private function couch.simplearray pKey pDoc
+  --MARK: REMOVE?
   -----
   local tJson, tCount
   -----
@@ -831,9 +874,11 @@ private function couch.DBURL pURL pDB pParams pFunk pDocID
   if pDocID is not empty then put urlencode(pDocID) into pDocID
   if char 1 to 4 of pURL is not "http" then put "http://" before pURL
   if char -1 of pURL is slash then put empty into char -1 of pURL
-  ifNotEmptyAppend pDB,pURL,slash
-  ifNotEmptyAppend pFunk,pURL,slash
-  ifNotEmptyAppend pDocID,pURL,slash
+  
+  if pDB is not empty then put  slash & pDB after pURL
+  if pFunk is not empty then put slash & pFunk after pURL
+  if pDocID is not empty then  put slash & pDocID after pURL
+  
   if char -1 of pURL is slash then put empty into char -1 of pURL
   if pParams is not empty then put couch.parseParams(pParams) after pURL
   return pURL
@@ -856,10 +901,6 @@ end couch.parseParams
 private function couch.returnFormat pResult pFormat
   -----
   local tForm
-  -----
-  
-  -----
-  local tFormat
   -----
   if pFormat is empty then 
     put the preferredFormat of this stack into tForm
@@ -955,7 +996,7 @@ function jsonArrayMaker pArray
   return newArray
 end jsonArrayMaker
 
-function c2a pList
+private function c2a pList
   split pList by comma
   if pList is empty then put empty into pList[1]
   return pList
@@ -981,7 +1022,6 @@ private function add2list pList pArray
   -----
   local tAList
   -----
-  
   if pList is empty then return pArray
   put array2list(pArray) into tAList
   set itemdel to comma
@@ -996,7 +1036,6 @@ private function array2list pArray
   -----
   local tCnt,tList
   -----
-  
   put the number of lines in the keys of pArray into tCnt
   repeat with x=1 to tCnt
     put pArray[x] after tList
@@ -1006,7 +1045,8 @@ private function array2list pArray
 end array2list
 
 private function keyVal pKey pVal
-  -----
+  --MARK: REMOVE?
+  ----- 
   local tReturn
   -----
   put quote & pKey & quote & colon & quote & pVal & quote into tReturn
@@ -1016,14 +1056,9 @@ end keyVal
 private command  ifEmptyFill @pFillMe pValue
   if pFillMe is empty then put pValue into pFillMe
 end ifEmptyFill
-     
-private command ifNotEmptyAppend pAppendMe @pAppendTo pDivider
-  if pAppendMe is not empty then 
-    put pAppendTo & pDivider & pAppendMe into pAppendTo
-  end if
-end ifNotEmptyAppend
 
 private function convertParams pParam
+  --MARK: REMOVE?
   -----
   local temp
   -----
@@ -1295,19 +1330,6 @@ function snapJson pJson
   replace cr with empty in pJson
   return pJson
 end snapJson
-
-private function isNumericalArray @pArray
-  local tKeys, aKey
-  put the keys of pArray into tKeys
-  repeat for each line aKey in tKeys
-    if aKey is not a number then
-      -- as soon as we don't get a number, get outa here!
-      return false
-      exit isNumericalArray
-    end if
-  end repeat
-  return true
-end isNumericalArray
 
 private function enQ pItem
   return quote & pItem & quote
