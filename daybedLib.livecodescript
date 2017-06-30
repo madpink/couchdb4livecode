@@ -1,5 +1,5 @@
 /*	
-Daybed - A Library for Apache CouchDB  version:  1.5.0  June 25, 2017
+Daybed - A Library for Apache CouchDB  version:  1.5.5  June 30, 2017
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
@@ -457,19 +457,20 @@ end couch.userDB
 on ___DaybedDB_LocalProp_Sync__
 end ___DaybedDB_LocalProp_Sync__
 
-function dbdb.local.newuser pURL pPrefix pUser pPass pOther pConflict pAuth
+function dbdb.local.newuser pURL pPrefix pUser pPass pOther pConflict pAuth pIDPrefix
   /*    pURL - full URL including port
   pPrefix - prefix of the db name (e.g. "user", "mppb")
   pUser - username    pPass - password
-  pOther - array of other data to be saved in _users
-  pConflict - local, server, duplicate  
-  pAuth - the admin authorization string     */
+  pOther - (optional) array of other data to be saved in _users
+  pConflict - (optional - defaults to server) local, server, duplicate  
+  pAuth - (optional if "Admin party" is in effect) the admin authorization string 
+  pIDPrefix - (optional) prefix for id numbers based on milliseconds    */
   -----
   local tSettings,tOptions,tResult,tDBName
   -----
   set the customPropertySet of this stack to "daybedDB"
   
-  put dbdb.createuseranddb(pURL,pPrefix,pUser,pPass,pConflict,pAuth,pOther) into tSettings
+  put dbdb.createuseranddb(pURL,pPrefix,pUser,pPass,pConflict,pAuth,pOther,pIDPrefix) into tSettings
   set the "_dbdbsettings" of this stack to tSettings["dbdb"]
   return tResult
 end dbdb.local.newuser
@@ -498,7 +499,7 @@ command dbdb.local.setdoc pDoc pDelete
   -----
   local tID
   -----
-  if pDoc["_id"] is empty then put uuid("random") into pDoc["_id"]
+  if pDoc["_id"] is empty then put dbdb.newdocid() into pDoc["_id"]
   put pDoc["_id"] into tID
   if pDoc["_rev"] is not empty then
     put "update" into pDoc["_dbdbflag"]
@@ -559,140 +560,171 @@ end dbdb.stack.save
 on ___DaybedDB_Sync_Functions__
 end ___DaybedDB_Sync_Functions__
 
-function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther
-  ------
-  local tOptions, tSettings, tResult
-  ------
-  if pAuth is not empty then 
-    put pAuth into tOptions["authval"]
-    put "encoded" into tOptions["authtype"]
-  end if
-  put couch.authval(pUser,pPass) into tSettings["auth"]
-  get binarydecode("H*",pUser,tSettings["db"])
-  put pPrefix & "_" before tSettings["db"]
-  put pURL into tSettings["url"]
-  put 0 into tSettings["lastseq"]
-  put pConflict into tSettings["conflict"]
-  put tSettings into tResult["dbdb"]
-  if pOther is not empty then put pOther into tOptions["userdata"]
-  put couch.adduser(pURL,pUser,pPass,tOptions) into tResult["user"]
-  put couch.put("db",pURL,tSettings["db"],,,tOptions) into tResult["db"]
-  put couch.securedb("set",pURL,tSettings["db"],tOptions,pUser,,pUser) into tResult["security"]
-  return tResult
+function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther pIDPrefix
+   ------
+   local tOptions, tSettings, tResult
+   ------
+   if pAuth is not empty then 
+      put pAuth into tOptions["authval"]
+      put "encoded" into tOptions["authtype"]
+   end if
+   put couch.authval(pUser,pPass) into tSettings["auth"]
+   get binarydecode("H*",pUser,tSettings["db"])
+   put pPrefix & "_" before tSettings["db"]
+   put pURL into tSettings["url"]
+   put 0 into tSettings["lastseq"]
+   put pConflict into tSettings["conflict"]
+   if tSettings["conflict"] is empty then put "server" into tSettings["conflict"]
+   put tSettings into tResult["dbdb"]
+   put pIDPrefix into tSettings["idprefix"]
+   if pOther is not empty then put pOther into tOptions["userdata"]
+   put couch.adduser(pURL,pUser,pPass,tOptions) into tResult["user"]
+   put couch.put("db",pURL,tSettings["db"],,,tOptions) into tResult["db"]
+   put couch.securedb("set",pURL,tSettings["db"],tOptions,pUser,,pUser) into tResult["security"]
+   return tResult
 end dbdb.createuseranddb
 
 function dbdb.sync pArray
-  /*
-  Settings are passed in pArray["_dbdbsettings"]
-  this must include these keys: url, auth, db, lastseq
-  conflict: local, server, duplicate
-  */
-  -----
-  local tKey, dbName, dbURL, tOptions, tParams
-  local upList, upDocs, downList, downDocs
-  local tempID, tRevS, tRevL, tCnt
-  -----
-  set itemdel to "-"
-  put pArray["_dbdbsettings"]["db"] into dbName
-  put pArray["_dbdbsettings"]["url"] into dbURL
-  put pArray["_dbdbsettings"]["auth"] into tOptions["authval"]
-  put "encoded" into tOptions["authtype"]
-  put pArray["_dbdbsettings"]["lastseq"] into tParams["since"]
-  
-  repeat for each key tKey in pArray
-    if tKey is "_dbdbsettings" then next repeat
-    if pArray[tKey]["_dbdbflag"] is empty then next repeat
-    delete variable pArray[tKey]["_dbdbflag"]
-    put pArray[tKey] into upDocs["docs"][tKey]
-    if pArray[tKey]["_delete"] then delete variable pArray[tKey]
-  end repeat
-  
-  put couch.get("changes",dbURL,dbName,,tParams,tOptions) into downList
-  put downList["last_seq"] into pArray["_dbdbsettings"]["lastseq"]
-  
-  repeat for each key tKey in downList["results"]
-    put downList["results"][tKey]["id"] into tempID
-    if downList["results"][tKey]["deleted"] then
-      delete variable pArray[tempID]
-      delete variable upDocs[tempID]
-      next repeat
-    end if
-    
-    if pArray[tempID] is empty then
-      put tempID into downDocs["keys"][tKey]
-      next repeat
-    end if
-    
-    put item 1 of downList["results"][tKey]["changes"][1]["rev"] into tRevS
-    put item 1 of pArray[tempID]["_rev"] into tRevL
-    
-    if tRevL = tRevS then next repeat
-    
-    if tRevL > tRevS then
-      --This shouldn't happen
-      --This resets the revID and reuploads the doc
-      --Unless it is already flagged for upload, in which case rev is updated
-      if upDocs[tempID] is empty then
-        put pArray[tempID] into upDocs["docs"][tempID]
-        put downList["results"][tKey]["changes"][1]["rev"] into upDocs["docs"][tempID]["_rev"]
-      else if pArray[tempID] is not empty then
-        put downList["results"][tKey]["changes"][1]["rev"] into pArray[tempID]["_rev"]
-      end if
-      next repeat
-    end if
-    
-    if tRevL < tRevS then
-      --If the local doc hasn't been updated, it will be updated
-      if upDocs[tempID] is empty then 
-        put tempID into downDocs["keys"][tKey]
-        next repeat
+   /*
+   Settings are passed in pArray["_dbdbsettings"]
+   this must include these keys: url, auth, db, lastseq
+   conflict: local, server, duplicate
+   optional:  idprefix
+   */
+   -----
+   local tKey, dbName, dbURL, tOptions, tParams
+   local upList, upDocs, downList, downDocs
+   local tempID, tRevS, tRevL, tCnt
+   -----
+   set itemdel to "-"
+   put pArray["_dbdbsettings"]["db"] into dbName
+   put pArray["_dbdbsettings"]["url"] into dbURL
+   put pArray["_dbdbsettings"]["auth"] into tOptions["authval"]
+   put "encoded" into tOptions["authtype"]
+   put pArray["_dbdbsettings"]["lastseq"] into tParams["since"]
+   
+   --scan local data for flagged changes and copy into upDocs
+   repeat for each key tKey in pArray
+      if tKey is "_dbdbsettings" then next repeat
+      if pArray[tKey]["_dbdbflag"] is empty then next repeat
+      delete variable pArray[tKey]["_dbdbflag"]
+      put pArray[tKey] into upDocs["docs"][tKey]
+      if pArray[tKey]["_delete"] then delete variable pArray[tKey]
+   end repeat
+   
+   --download changes stream
+   put couch.get("changes",dbURL,dbName,,tParams,tOptions) into downList
+   put downList["last_seq"] into pArray["_dbdbsettings"]["lastseq"]
+   
+   --scan change log
+   repeat for each key tKey in downList["results"]
+      put downList["results"][tKey]["id"] into tempID
+      
+      --skip documents not related if applicable
+      if pArray["_dbdbsettings"]["idprefix"] is not empty and  pArray["_dbdbsettings"]["idprefix"] is not "uuid" then
+         if not(tempID begins with pArray["_dbdbsettings"]["idprefix"]) then next repeat
       end if
       
-      --if the local doc has been updated and the server doc has been updated:
-      switch pArray["_dbdbsettings"]["conflict"]
-        case "local"
-          put downList["results"][tKey]["changes"][1]["rev"] into upDocs["docs"][tempID]["_rev"]
-          break
-        case "server"
-          put tempID into downDocs["keys"][tKey]
-          break
-        case "duplicate"
-          put tempID into downDocs["keys"][tKey]
-          delete variable upDocs[tempID]
-          put pArray[tempID] into upDocs[tempID & "_conflict"]
-          delete variable upDocs[tempID & "_conflict"]["_rev"]
-          break
-      end switch
-    end if
-  end repeat
-  
-  if upDocs["docs"] is not empty then
-    put jsonArrayMaker(upDocs["docs"]) into upDocs["docs"]
-    put couch.post("bulk_docs",dbURL,dbName,upDocs,tParams,tOptions) into upList
-    repeat for each key tKey in upList
-      put upList[tKey]["id"] into tempID
-      if pArray[tempID]["_deleted"] then
-        delete variable pArray[tempID]
-      else
-        put upList[tKey]["rev"] into pArray[tempID]["_rev"]
+      --delete documents locally that have been deleted on the server
+      if downList["results"][tKey]["deleted"] then
+         delete variable pArray[tempID]
+         delete variable upDocs[tempID]
+         next repeat
       end if
-    end repeat
-  end if
-  
-  if downDocs["keys"] is not empty then
-    put true into tParams["include_docs"]
-    put jsonArrayMaker(downDocs["keys"]) into downDocs["keys"]
-    put couch.post("all_docs",dbURL,dbName,downDocs,tParams,tOptions) into downList
-    repeat for each key tKey in downList["rows"]
-      put downList["rows"][tKey]["id"] into tempID
-      put downList["rows"][tKey]["doc"] into pArray[tempID]
-    end repeat
-  end if
-  
-  delete variable pArray[empty]
-  
-  return pArray
+      
+      --if document doesn't exist locally, flag it for download
+      if pArray[tempID] is empty then
+         put tempID into downDocs["keys"][tKey]
+         next repeat
+      end if
+      
+      --compare revision numbers
+      put item 1 of downList["results"][tKey]["changes"][1]["rev"] into tRevS
+      put item 1 of pArray[tempID]["_rev"] into tRevL
+      
+      if tRevL = tRevS then next repeat
+      
+      if tRevL > tRevS then
+         --This shouldn't happen
+         --This resets the revID and reuploads the doc
+         --Unless it is already flagged for upload, in which case rev is updated
+         if upDocs[tempID] is empty then
+            put pArray[tempID] into upDocs["docs"][tempID]
+            put downList["results"][tKey]["changes"][1]["rev"] into upDocs["docs"][tempID]["_rev"]
+         else if pArray[tempID] is not empty then
+            put downList["results"][tKey]["changes"][1]["rev"] into pArray[tempID]["_rev"]
+         end if
+         next repeat
+      end if
+      
+      if tRevL < tRevS then
+         --If the local doc hasn't been updated, it will be updated
+         if upDocs[tempID] is empty then 
+            put tempID into downDocs["keys"][tKey]
+            next repeat
+         end if
+         
+         --if the local doc has been updated and the server doc has been updated:
+         switch pArray["_dbdbsettings"]["conflict"]
+            case "local"
+               put downList["results"][tKey]["changes"][1]["rev"] into upDocs["docs"][tempID]["_rev"]
+               break
+            case "server"
+               put tempID into downDocs["keys"][tKey]
+               break
+            case "duplicate"
+               put tempID into downDocs["keys"][tKey]
+               delete variable upDocs[tempID]
+               put pArray[tempID] into upDocs[tempID & "_conflict"]
+               delete variable upDocs[tempID & "_conflict"]["_rev"]
+               break
+         end switch
+      end if
+   end repeat
+   
+   --upload local docs that are new or have been modified
+   if upDocs["docs"] is not empty then
+      put jsonArrayMaker(upDocs["docs"]) into upDocs["docs"]
+      put couch.post("bulk_docs",dbURL,dbName,upDocs,tParams,tOptions) into upList
+      repeat for each key tKey in upList
+         put upList[tKey]["id"] into tempID
+         if pArray[tempID]["_deleted"] then
+            delete variable pArray[tempID]
+         else
+            put upList[tKey]["rev"] into pArray[tempID]["_rev"]
+         end if
+      end repeat
+   end if
+   
+   --download server docs that are new or have been modified
+   if downDocs["keys"] is not empty then
+      put true into tParams["include_docs"]
+      put jsonArrayMaker(downDocs["keys"]) into downDocs["keys"]
+      put couch.post("all_docs",dbURL,dbName,downDocs,tParams,tOptions) into downList
+      repeat for each key tKey in downList["rows"]
+         put downList["rows"][tKey]["id"] into tempID
+         put downList["rows"][tKey]["doc"] into pArray[tempID]
+      end repeat
+   end if
+   
+   delete variable pArray[empty]
+   
+   return pArray
 end dbdb.sync
+
+function dbdb.newdocid
+   -----
+   local tSett, tNewID
+   -----
+   put the daybedDB["_dbdbsettings"] of this stack into tSett
+   if tSett["idprefix"] is empty then
+      put "db_" into tNewID
+   else if tSett["idprefix"] is "uuid" then
+      return uuid("random")
+   end if
+   put the milliseconds after tNewID
+   return tNewID
+end dbdb.newdocid
 
 on ___CouchDB_Internal_Functions___
 end ___CouchDB_Internal_Functions___
@@ -802,10 +834,10 @@ end couch.aType
 private function couch.ddoc pDocID pOptions
   if pDocID is empty then put pOptions["docid"] into pDocID
   if char 1 to 7 of pDocID is not "_design" then put "_design/" before pDocID
-  if pOptions["ddocfunc"] is not empty then put "/_" & pOptions["ddocfunc"] after pDocID
-  if pOptions["ddocname"] is not empty then put "/" & pOptions["ddocname"] after pDocID
-  if pOptions["ddocxtend"] is not empty then put "/" & pOptions["ddocxtend"] after pDocID
-  if pOptions["ddocxtend2"] is not empty then put "/" & pOptions["ddocxtend2"] after pDocID
+  if pOptions["ddoc"]["func"] is not empty then put "/_" & pOptions["ddoc"]["func"] after pDocID
+  if pOptions["ddoc"]["name"] is not empty then put "/" & pOptions["ddoc"]["name"] after pDocID
+  if pOptions["ddoc"]["otherid"] is not empty then put "/" & pOptions["ddoc"]["otherid"] after pDocID
+  if pOptions["ddoc"]["otherfunc"] is not empty then put "/" & pOptions["ddoc"]["otherfunc"] after pDocID
   if pOptions["attachment"] is not empty then put "/" & pOptions["attachment"] after pDocID
   return pDocID
 end couch.ddoc
