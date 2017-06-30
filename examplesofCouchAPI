@@ -334,7 +334,7 @@ GET /{db}/_design/{ddoc}/_info	Returns view index information for the specified 
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "info" into tOptions["ddocfunc"]
+     put "info" into tOptions["ddoc"]["func"]
      put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
    
 /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	
@@ -342,10 +342,10 @@ GET /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	Executes a list functi
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "list" into tOptions["ddocfunc"]
-     put "myspeciallist" into tOptions["ddocname"]
-     put "otherdoc" into tOptions["ddocxtend"]  
-     put "view" into tOptions["ddocxtend2"]
+     put "list" into tOptions["ddoc"]["func"]
+     put "myspeciallist" into tOptions["ddoc"]["name"]
+     put "otherdoc" into tOptions["ddoc"]["otherdoc"]  
+     put "view" into tOptions["ddoc"]["otherfunc"]
      put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
      
 POST /{db}/_design/{ddoc}/_list/{func}/{other-ddoc}/{view}	
@@ -356,9 +356,9 @@ GET /{db}/_design/{ddoc}/_list/{func}/{view}	Executes a list function against th
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "list" into tOptions["ddocfunc"]
-     put "myspeciallist" into tOptions["ddocname"]
-     put "view" into tOptions["ddocxtend"]
+     put "list" into tOptions["ddoc"]["func"]
+     put "myspeciallist" into tOptions["ddoc"]["name"]
+     put "view" into tOptions["ddoc"]["otherdoc"]
      put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
 POST /{db}/_design/{ddoc}/_list/{func}/{view}	
      The same as GET
@@ -368,8 +368,8 @@ GET /{db}/_design/{ddoc}/_show/{func}	Executes a show function against null docu
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "show" into tOptions["ddocfunc"]
-     put "myshowfunc" into tOptions["ddocname"]
+     put "show" into tOptions["ddoc"]["func"]
+     put "myshowfunc" into tOptions["ddoc"]["name"]
      put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
 POST /{db}/_design/{ddoc}/_show/{func}	
      The same as GET
@@ -379,9 +379,9 @@ GET /{db}/_design/{ddoc}/_show/{func}/{docid}	Executes a show function against t
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "show" into tOptions["ddocfunc"]
-     put "myshowfunc" into tOptions["ddocname"]
-     put "4743824238423947234984" into tOptions["ddocxtend"]
+     put "show" into tOptions["ddoc"]["func"]
+     put "myshowfunc" into tOptions["ddoc"]["name"]
+     put "4743824238423947234984" into tOptions["ddoc"]["othername"]
      put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
 POST /{db}/_design/{ddoc}/_show/{func}/{docid}	
      The same as GET
@@ -391,8 +391,8 @@ POST /{db}/_design/{ddoc}/_update/{func}	Executes an update function
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "updatedoc" into tOptions["docid"]
-     put "update" into tOptions["ddocfunc"]
-     put "myupdatefunc" into tOptions["ddocname"]
+     put "update" into tOptions["ddoc"]["func"]
+     put "myupdatefunc" into tOptions["ddoc"]["name"]
      put couch.post(design,tURL,tDB,,tOptions) into zzz
      
 /{db}/_design/{ddoc}/_update/{func}/{docid}	
@@ -400,9 +400,9 @@ PUT /{db}/_design/{ddoc}/_update/{func}/{docid}	Executes an update function agai
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "update" into tOptions["ddocfunc"]
-     put "myview" into tOptions["ddocname"] 
-     put "ssdd98r98t443e" into tOptions["ddocxtend"]
+     put "update" into tOptions["ddoc"]["func"]
+     put "myview" into tOptions["ddoc"]["name"] 
+     put "ssdd98r98t443e" into tOptions["ddoc"]["otherdoc"]
      put couch.put(design,tURL,tDB,tDocID,tOptions) into zzz
      
 /{db}/_design/{ddoc}/_view/{view}	
@@ -410,16 +410,16 @@ GET /{db}/_design/{ddoc}/_view/{view}	Returns results for the specified stored v
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tDocID
-     put "view" into tOptions["ddocfunc"]
-     put "myview" into tOptions["ddocname"]
+     put "view" into tOptions["ddoc"]["func"]
+     put "myview" into tOptions["ddoc"]["name"]
      put couch.get(design,tURL,tDB,tDocID,tOptions) into zzz
 
 POST /{db}/_design/{ddoc}/_view/{view}	Returns certain rows for the specified stored view
      put "http://127.0.0.1:5984/" into tURL
      put "testdb" into tDB
      put "testdoc" into tOptions["docid"]
-     put "view" into tOptions["ddocfunc"]
-     put "myview" into tOptions["ddocname"]
+     put "view" into tOptions["ddoc"]["func"]
+     put "myview" into tOptions["ddoc"]["name"]
      put "case0001" into tDoc["keys"][1]
      put "case0002" into tDoc["keys"][2]   
      put couch.post(design,tURL,tDB,tDoc,tOptions) into zzz
