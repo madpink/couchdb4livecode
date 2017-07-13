@@ -1,5 +1,5 @@
 /*	
-Daybed - A Library for Apache CouchDB  version:  1.5.5  June 30, 2017
+Daybed - A Library for Apache CouchDB  version:  1.5.8  July 13, 2017
 
 contact:   pink@mad.pink (aka Greg Miller)
 	
@@ -1430,6 +1430,8 @@ local sOutputUnicode=""
 local sJson=""
 local sIndex=0
 local sNumTokens=0
+local sKeepNumeric
+local sFillTheBlanks
 
 ##
 # -------------------------------------------------------------------
@@ -1477,15 +1479,6 @@ function fast.jsonToArray pJson, asUnicode, pSkipValidation
 end fast.jsonToArray
 
 ##
-#
-#  Included for compatibility with easyJson scripts
-#
-##
-function arrayFromJson pJson
-  return fast.jsonToArray(pJson)
-end arrayFromJson
-
-##
 # -------------------------------------------------------------------
 #  Array To JSON
 # -------------------------------------------------------------------
@@ -1500,48 +1493,42 @@ end arrayFromJson
 # -------------------------------------------------------------------
 #
 ##
-function fast.arrayToJson pArray keepNumeric
-  local tJSON
-  local tValue
-  local tKey
-  
-  if pArray is not an array then return "Parser Error: parameter given is not an array."
-  if isNumericalArray(pArray) and keepNumeric is not true then
-    # the array's keys are all *numerical*, so the root element will be a JSON *array*
-    # if keepNumeric is true, then the keys will remain numeric keys
-    put "[" into tJSON
-    repeat for each element tValue in pArray
-      --put jsonValue(tValue) & comma after tJSON
-      if tValue is empty then
-        put space after tJSON
-      else
-        put jsonValue(tValue) & comma after tJSON
-      end if
-    end repeat
-    put "]" into the last char of tJSON
-  else
-    # the array's keys are not all numerical, so the root element will be a JSON *object*
-    put "{" into tJSON
-    repeat for each key tKey in pArray
-      # all JSON object keys are double-quoted strings:
-      put quote & tKey & quote & ":" & jsonValue(pArray[tKey]) & comma after tJSON
-    end repeat
-    put "}" into the last char of tJSON
-  end if
-  return tJSON
+function fast.arrayToJson pArray keepNumeric fillTheBlanks
+   local tJSON,  tValue, tKey, tArrayList
+   if keepNumeric then put true into sKeepNumeric
+   if fillTheBlanks then put true into sFillTheBlanks
+   
+   if pArray is not an array then return "Parser Error: parameter given is not an array."
+   if isNumericalArray(pArray) and keepNumeric is not true and sFillTheBlanks then
+      put fillBlanks(pArray) into pArray
+   end if
+   if isNumericalArray(pArray) and sKeepNumeric is not true then
+      # the array's keys are all *numerical*, so the root element will be a JSON *array*
+      # if keepNumeric is true, then the keys will remain numeric keys
+      put "[" into tJSON
+      put the keys of pArray into tArrayList
+      sort tArrayList numeric
+      repeat for each line tValue in tArrayList
+         --put jsonValue(tValue) & comma after tJSON
+         if tValue is empty then
+            put space after tJSON
+         else
+            --put pArray(tValue) into tValue
+            put jsonValue(pArray[tValue]) & comma after tJSON
+         end if
+      end repeat
+      put "]" into the last char of tJSON
+   else
+      # the array's keys are not all numerical, so the root element will be a JSON *object*
+      put "{" into tJSON
+      repeat for each key tKey in pArray
+         # all JSON object keys are double-quoted strings:
+         put quote & tKey & quote & ":" & jsonValue(pArray[tKey]) & comma after tJSON
+      end repeat
+      put "}" into the last char of tJSON
+   end if
+   return tJSON
 end fast.arrayToJson
-
-##
-## -------------------------------------------------------------------
-#
-#  Included for compatibility with easyJson scripts
-#
-# -------------------------------------------------------------------
-#
-##
-function jsonFromArray pJson
-   return fast.arrayToJson(pJson)
-end jsonFromArray
 
 ##
 # -------------------------------------------------------------------
@@ -1844,43 +1831,44 @@ end isNumericalArray
 #
 
 private function jsonValue pValue
-  switch
-    case pValue is an array
-      # this allows us to have nested JSON objects and arrays:
-      return fast.arrayToJson(pValue)
-      break
-    case pValue is empty
-      return "null"
-      break
-    case pValue is a boolean
-      if pValue then return "true"
-      else return "false"
-      break
-    case pValue is a number
-      -- need to catch when a "number" starts with a 0
-      -- decided to return this as a quoted string
-      -- JSON lint throws an exception if a number starts with a 0
-      if (character 1 of pValue = 0) and not (character 2 of pValue = ".") and (length(pValue) > 1) then
-        return quote & pValue & quote
-      end if
-      -- there is an "anomoly" in LC where "inf" and "Infinity" are getting through "is a number"
-      -- function. Not sure what the result will be but the code below will catch both.
-      -- I have submitted the following bugs: 16160, 16162, 16163
-      if char 1 of pValue is "i" then
-        return quote & pValue & quote
-      else
-        return pValue
-      end if
-    default
-      # any other value is processed as a string.
-      # JSON strings require that certain characters be 'escaped' with a backslash:
-      replace "\" with "\\" in pValue // the backslash itself
-      replace quote with ("\" & quote) in pValue // the double quote
-      replace "/" with "\/" in pValue // the (forward) slash
-      replace tab with "\t" in pValue // the tab
-      replace return with "\n" in pValue // the return
-      return quote & pValue & quote
-  end switch
+   switch
+      case pValue is an array
+         # this allows us to have nested JSON objects and arrays:
+         return fast.arrayToJson(pValue)
+         break
+      case pValue is "null"
+      case pValue is empty
+         return "null"
+         break
+      case pValue is a boolean
+         if pValue then return "true"
+         else return "false"
+         break
+      case pValue is a number
+         -- need to catch when a "number" starts with a 0
+         -- decided to return this as a quoted string
+         -- JSON lint throws an exception if a number starts with a 0
+         if (character 1 of pValue = 0) and not (character 2 of pValue = ".") and (length(pValue) > 1) then
+            return quote & pValue & quote
+         end if
+         -- there is an "anomoly" in LC where "inf" and "Infinity" are getting through "is a number"
+         -- function. Not sure what the result will be but the code below will catch both.
+         -- I have submitted the following bugs: 16160, 16162, 16163
+         if char 1 of pValue is "i" then
+            return quote & pValue & quote
+         else
+            return pValue
+         end if
+      default
+         # any other value is processed as a string.
+         # JSON strings require that certain characters be 'escaped' with a backslash:
+         replace "\" with "\\" in pValue // the backslash itself
+         replace quote with ("\" & quote) in pValue // the double quote
+         replace "/" with "\/" in pValue // the (forward) slash
+         replace tab with "\t" in pValue // the tab
+         replace return with "\n" in pValue // the return
+         return quote & pValue & quote
+   end switch
 end jsonValue
 
 private command tokenize @pJson
@@ -1925,3 +1913,14 @@ function numTokens @pJson
   
   return sNumTokens
 end numTokens
+
+private function fillBlanks pArray
+   local tKeyList, tKey, tLast
+   put the keys of pArray into tKeyList
+   sort tKeyList numeric
+   put the last line of tKeyList into tLast
+   repeat with tKey=1 to tLast
+      if pArray[tKey] is empty then put "null" into pArray[tKey]
+   end repeat
+   return pArray
+end fillBlanks
