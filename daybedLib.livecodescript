@@ -1430,8 +1430,9 @@ local sOutputUnicode=""
 local sJson=""
 local sIndex=0
 local sNumTokens=0
-local sKeepNumeric
-local sFillTheBlanks
+local sKeepNumeric=false   --set to keep numeric arrays as json objects instead of arrays
+local sFillTheBlanks=false   --set to fill in the blanks between numbers out of order in numeric arrays
+local sNull=false    --set to treat the text "null" as the value null 
 
 ##
 # -------------------------------------------------------------------
@@ -1493,10 +1494,10 @@ end fast.jsonToArray
 # -------------------------------------------------------------------
 #
 ##
-function fast.arrayToJson pArray keepNumeric fillTheBlanks
+function fast.arrayToJson pArray pkeepNumeric pfillTheBlanks
    local tJSON,  tValue, tKey, tArrayList
-   if keepNumeric then put true into sKeepNumeric
-   if fillTheBlanks then put true into sFillTheBlanks
+   if pkeepNumeric is not empty then put pkeepNumeric into sKeepNumeric
+   if pfillTheBlanks is not empty  then put pfillTheBlanks into sFillTheBlanks
    
    if pArray is not an array then return "Parser Error: parameter given is not an array."
    if isNumericalArray(pArray) and keepNumeric is not true and sFillTheBlanks then
@@ -1751,8 +1752,8 @@ private function jsonDecode pString
     case ""
       return empty
       break
-    case "null"
-      return empty
+   case "null"
+      if sNull then return "null" else return empty
       break
     default
       if pString is a number then
@@ -1831,12 +1832,12 @@ end isNumericalArray
 #
 
 private function jsonValue pValue
+   if sNull and pValue is "null" then put empty into pValue
    switch
       case pValue is an array
          # this allows us to have nested JSON objects and arrays:
          return fast.arrayToJson(pValue)
          break
-      case pValue is "null"
       case pValue is empty
          return "null"
          break
