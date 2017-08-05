@@ -1,6 +1,6 @@
 # couchdb4livecode 
 
-Daybed - A Library for Apache CouchDB  version:  1.5.8  July 13, 2017
+Daybed - A Library for Apache CouchDB 
 
 Instructions for use are available in the wiki:
 https://github.com/madpink/couchdb4livecode/wiki
