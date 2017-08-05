@@ -1,41 +1,25 @@
 /*	
-Daybed - A Library for Apache CouchDB  version:  1.5.8  July 13, 2017
-
-contact:   pink@mad.pink (aka Greg Miller)
-	
+Daybed - A Library for Apache CouchDB  version:  2.0.0  2017-08-05
+contact:   pink @ mad.pink (aka Greg Miller)
 This is a simple library that calls CouchDB's REST functions.
 	
 ---FUNCTION PARAMETERS---
 
-pFunk - (always required) Couch function being called, without the leading underscore, for example "all_docs"
-
+pFunk - (always required) Couch function being called
 pURL - (always required) the URL of the CouchDB installation, including "http://", the port numer and a trailing slash
-For example:   "http://192.168.23.42:5984/"
-With username/password:    "http://admin:trustno1@192.168.23.42:5984/"
-
 pDB - (required when acting on or retrieving from a database) - the name of the database being accessed
-
 pDocID - (required for most get functions) the document "_id" being retrieved
-for design documents, use the pDocID param to specify it
-for selecting a view from a design document, add a slash with the view name to pDocID, for example:
-for the following view call /_design/querymon/_view/phone
-put querymon/phone into pDocID
-			
 pDoc - (required for most put and post functions) array containing the data being converted into a document for the database
-
 pParams - an array with any OPTIONAL parameters, with the parameter as a key.
-For example:  to download documents when running the _all_docs function, and limit the list to only 10 records:
-put true into tParams["include_docs"]
-put 10 into tParams["limit"]
-
 pOptions - (optional) header options, including user and pass (see "Authentication"), also used in "config" operations
-also can include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
-the stack can have a customProperty called "preferredFormat" which can be one of those three values,
-if pOptions["format"] is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
 
-couch.adduser is for creating a new user in the "_users" database
+Output format:
+-include pOptions["format"] with "array", "rawjson" or "prettyjson" for the return format
+-the stack can have a customProperty called "preferredFormat" which can be one of those three values,
+-if pOptions["format"] is blank, then "preferredFormat" will be used, if it is not set, then "array" will be used
 */
 
+local jsonLibName = fastJSON  --valid values: fastJSON, mergJSON, easyJSON
 
 on ___CouchDB_Main_Functions___
 end ___CouchDB_Main_Functions___
@@ -57,13 +41,19 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions
     case "slash"
       put empty into pFunk
       break
+    case "ddoc-view"
+    case "ddoc-list"
+    case "ddoc-show"
+    case "ddoc-update"
+      put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
     case "design"
     case "ddoc"
       put couch.ddoc(pDocID,pOptions) into pDocID
       put empty into pFunk
       break
+    case "_config"
     case "config"
-      put "_" before pFunk
+      if char 1 of pFunk is not "_" then put "_" before pFunk
       put pOptions["section"] into pDocID
       if pOptions["key"] is not empty then
         put slash & pOptions["key"] after pDocID
@@ -74,7 +64,7 @@ function couch.get pFunk pURL pDB pDocID pParams pOptions
       put "/" & pOptions["attachment"] after pDocID
       break
     default
-      put "_" before pFunk
+      if char 1 of pFunk is not "_" then put "_" before pFunk
       break
   end switch
   	   		
@@ -114,14 +104,20 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
       put empty into pFunk
       put pOptions["docid"] & "/" & pOptions["attachname"] into pDocID
       break
+    case "ddoc-view"
+    case "ddoc-list"
+    case "ddoc-show"
+    case "ddoc-update"
+      put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
     case "design"
     case "ddoc"
       put pDoc["_id"] into pDocID
       put couch.ddoc(pDocID,pOptions) into pDocID
       put empty into pFunk
       break
+    case "_config"
     case "config"
-      put "_" before pFunk
+      if char 1 of pFunk is not "_" then put "_" before pFunk
       put pOptions["section"] into pDocID
       if pOptions["key"] is not empty then
         put slash & pOptions["key"] after pDocID
@@ -134,7 +130,7 @@ function couch.put pFunk pURL pDB pDoc pParams pOptions
       put empty into pFunk
       break
     default
-      put "_" before pFunk
+      if char 1 of pFunk is not "_" then put "_" before pFunk
       break
   end switch
   
@@ -186,14 +182,19 @@ function couch.post pFunk pURL pDB pDoc pParams pOptions
       put "_compact" into pFunk
       put pDoc into pDocID
       break
-    case "design"
+    case "ddoc-view"
+    case "ddoc-list"
+    case "ddoc-show"
+    case "ddoc-update"
+      put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
+    case "design"   
     case "ddoc"
       put pDoc["_id"] into pDocID
       put couch.ddoc(pDocID,pOptions) into pDocID
       put empty into pFunk
       break
     default
-      put "_" before pFunk
+      if char 1 of pFunk is not "_" then put "_" before pFunk
       break
   end switch
   	   	
@@ -233,7 +234,7 @@ function couch.delete pFunk pURL pDB pDocID pParams pOptions
       put "_local/" before pDocID
       break
     default
-      put "_" before pFunk
+      if char 1 of pFunk is not "_" then put "_" before pFunk
       break
   end switch
   couch.setHeaders
@@ -317,81 +318,55 @@ end couch.securedb
 on ___CouchDB_Quick_Functions___
 end ___CouchDB_Quick_Functions___
 
-function qouch.getdoc pDocID pCDB
-  put qouch.quickinfo(pCDB) into pCDB
-  return couch.get("doc",pCDB["url"],pCDB["db"],pDocID,pCDB["options"],pCDB["params"])
+local sCouchURL = "http://127.0.0.1:5984"
+local sDatabase = "test"
+local sAuthentication = ""
+
+command qouch.init pDB pUser pPass pURL
+     if pURL is not empty then put pURL into sCouchURL
+     if pDB is not empty then 
+          if char -1 of pDB is "_" then 
+               put couch.userDB(pUser,pDB) into sDatabase
+          else
+               put pDB into sDatabase
+          end if
+     end if
+     if pUser is not empty then put base64encode(pUser & colon & pPass) into sAuthentication
+end qouch.init
+
+private function qouch.auth
+     local tOptions
+     put sAuthentication into tOptions["authval"]
+     put "encoded" into tOptions["authtype"]
+     return tOptions
+end qouch.auth
+
+function qouch.getdoc pDocID pParams
+  return couch.get("doc",sCouchURL,sDatabase,pDocID,qouch.auth(),pParams)
 end qouch.getdoc
 
-function qouch.putdoc pDoc pCDB
-  put qouch.quickinfo(pCDB) into pCDB
-  return couch.put("doc",pCDB["url"],pCDB["db"],pDoc,pCDB["options"],pCDB["params"])
+function qouch.putdoc pDoc pParams
+     return couch.put("doc",sCouchURL,sDatabase,pDoc,qouch.auth(),pParams)
 end qouch.putdoc
 
-function qouch.alldocs pInclude pCDB
-  put qouch.quickinfo(pCDB) into pCDB
-  if pInclude then put true into pCDB["params"]["include_docs"]
-  return couch.get("alldoc",pCDB["url"],pCDB["db"],,pCDB["options"],pCDB["params"])
+function qouch.alldocs pInclude pParams
+     if pInclude then put true into pCDB["params"]["include_docs"]
+     
+  return couch.get("alldoc",sCouchURL,sDatabase,,qouch.auth(),pParams)
 end qouch.alldocs
 
-function qouch.changes pLast pInclude pCDB
-  put qouch.quickinfo(pCDB) into pCDB
+function qouch.changes pLast pInclude pParams
   if pLast is not empty then put pLast into pCDB["params"]["since"]
   if pInclude then put true into pCDB["params"]["include_docs"]
-  return couch.get("changes",pCDB["url"],pCDB["db"],,pCDB["options"],pCDB["params"])
+  return couch.get("changes",sCouchURL,sDatabase,,qouch.auth(),pParams)
 end qouch.changes
 
-function qouch.ddoc pDdoc pType pName pInclude pCDB
-  put qouch.quickinfo(pCDB) into pCDB
+function qouch.ddoc pDdoc pType pName pInclude pParams
   if pInclude then put true into pCDB["params"]["include_docs"]
-  put pType into pCDB["options"]["ddocfunc"]
-  put pName into pCDB["options"]["ddocxtend"]
-  put couch.get("design",pCDB["url"],pCDB["db"],pDdoc,pCDB["options"],pCDB["params"])
+  put pType into pCDB["options"]["ddoc"]["func"]
+  put pName into pCDB["options"]["ddoc"]["xtend"]
+  put couch.get("design",sCouchURL,sDatabase,pDdoc,qouch.auth(),pParams)
 end qouch.ddoc
-
-private function qouch.quickinfo pCDB
-  if pCDB["url"] is empty then put "http://127.0.0.1:5984" into pCDB["url"]
-  if pCDB["db"] then put "appdata" into pCDB["db"]
-  if pCDB["options"]["authval"] then put "admin:trustno1" into pCDB["options"]["authval"]
-  if pCDB["options"]["authtype"] then put "login" into pCDB["options"]["authtype"]
-  return pCDB
-end qouch.quickinfo
-
-on ___Cloudant_Functions___
-  /*
-  generate API Keys:
-  curl -X POST https://$USERNAME:$PASSWORD@$USERNAME.cloudant.com/_api/v2/api_keys
-  returns:
-  {     "password": "YPNCaIX1sJRX5upaL3eqvTfi",
-  "ok": true,
-  "key": "blentfortedsionstrindigl"    }
-  
-  assign API key to a DB:
-  1st:
-  get https://<username>.cloudant.com/_api/v2/db/<database>/_security
-  2nd adjust:
-  {
-  "cloudant": {
-  "antsellseadespecteposene": [
-  "_reader",
-  "_writer",
-  "_admin"
-  ],
-  "garbados": [
-  "_reader",
-  "_writer",
-  "_admin"
-  ],
-  "nobody": [
-  "_reader"
-  ]
-  },
-  "_id": "_security"
-  }
-  3rd PUT it back
-  */
-end ___Cloudant_Functions___
-
-
 
 on ___CouchDB_Experimental_Functions___
 end ___CouchDB_Experimental_Functions___
@@ -437,6 +412,8 @@ function couch.db pCouch  ---This is an experimental UberFunction
   return couch.returnFormat(tResult,tFormat)
 end couch.db
 
+
+
 function couch.userDB pUsername pPrefix
   -----
   local tDBName, tUser
@@ -444,7 +421,8 @@ function couch.userDB pUsername pPrefix
   if pPrefix is empty then 
     put "user_" into tDBName
   else
-    put pPrefix & "_" into tDBName
+       put pPrefix into tDBName
+       if char -1 of tDBName is not "_" then  put "_" after tDBName
   end if
   
   get binarydecode("H*",pUsername,tUser)
@@ -457,23 +435,35 @@ end couch.userDB
 on ___DaybedDB_LocalProp_Sync__
 end ___DaybedDB_LocalProp_Sync__
 
-function dbdb.local.newuser pURL pPrefix pUser pPass pOther pConflict pAuth pIDPrefix
+function dbdb.local.newuser pURL pUser pPass pAuth pPrefix pOther pConflict pIDPrefix pApp pPurge
   /*    pURL - full URL including port
   pPrefix - prefix of the db name (e.g. "user", "mppb")
   pUser - username    pPass - password
   pOther - (optional) array of other data to be saved in _users
   pConflict - (optional - defaults to server) local, server, duplicate  
   pAuth - (optional if "Admin party" is in effect) the admin authorization string 
-  pIDPrefix - (optional) prefix for id numbers based on milliseconds    */
+  pIDPrefix - (optional) prefix for id numbers based on milliseconds 
+  pApp - (optional) application name for searches
+  pPurge - (optional) how often to purge deleted docs  */
   -----
-  local tSettings,tOptions,tResult,tDBName
+  local tSettings
   -----
   set the customPropertySet of this stack to "daybedDB"
   
-  put dbdb.createuseranddb(pURL,pPrefix,pUser,pPass,pConflict,pAuth,pOther,pIDPrefix) into tSettings
+  put dbdb.createuseranddb(pURL,pPrefix,pUser,pPass,pConflict,pAuth,pOther,pIDPrefix,pApp,pPurge) into tSettings
   set the "_dbdbsettings" of this stack to tSettings["dbdb"]
-  return tResult
+  return tSettings
 end dbdb.local.newuser
+
+command dbdb.local.setting pSett pVal 
+     ---
+     local tSettings
+     ---
+     set the customPropertySet of this stack to "daybedDB"
+     put the _dbdbsettings of this stack into tSettings
+     put pVal into tSettings[pSett]
+     set the _dbdbsettings of this stack to tSettings
+end dbdb.local.setting
 
 command dbdb.local.sync
   ------
@@ -496,17 +486,20 @@ command dbdb.local.sync
 end dbdb.local.sync
 
 command dbdb.local.setdoc pDoc pDelete
-  -----
-  local tID
-  -----
-  if pDoc["_id"] is empty then put dbdb.newdocid() into pDoc["_id"]
-  put pDoc["_id"] into tID
-  if pDoc["_rev"] is not empty then
-    put "update" into pDoc["_dbdbflag"]
-  else 
-    put "new" into pDoc["_dbdbflag"]
-  end if
-  set the daybedDB[tID] of this stack to pDoc
+     -----
+     local tID, tSett
+     -----
+     put the daybedDB["_dbdbsettings"] of this stack into tSett
+     if pDoc["_id"] is empty then put dbdb.newdocid(tSett) into pDoc["_id"]
+     put pDoc["_id"] into tID
+     put the seconds into pDoc["dbdb"]["last_updated"]
+     put tSett["appname"] into pDoc["dbdb"]["app"]
+     if pDoc["_rev"] is not empty then
+          put "update" into pDoc["dbdb"]["flag"]
+     else 
+          put "new" into pDoc["dbdb"]["flag"]
+     end if
+     set the daybedDB[tID] of this stack to pDoc
 end dbdb.local.setdoc
 
 command dbdb.local.deletedoc pDocID
@@ -514,8 +507,8 @@ command dbdb.local.deletedoc pDocID
   local tDoc
   -----
   put the daybedDB[pDocID] of this stack into tDoc
-  put "delete" into tDoc["_dbdbflag"]
-  put true into tDoc["_deleted"]
+  put "delete" into tDoc["dbdb"]["flag"]
+  put the seconds into pDoc["dbdb"]["last_updated"]
   set the daybedDB[pDocID] of this stack to tDoc
 end dbdb.local.deletedoc
 
@@ -526,11 +519,11 @@ end dbdb.local.getdoc
 on ___DaybedDB_Local_Stack
 end ___DaybedDB_Local_Stack
 
-command dbdb.stack.load pFileName pStackName pMainFolder pSubFolder
+command dbdb.stack.load pFileName pStackName pMainFolder pSubFolder pPropSet
   -----
   local tData
   -----
-  
+  if pPropSet is empty then put "daybedDB" into pPropSet
   if pStackName is empty then put the short name of this stack & "_data"  into pStackName
   put getFilePath(pMainFolder,pSubFolder,pFileName) into pFileName
   if pStackName is not among the lines of the mainStacks then
@@ -540,191 +533,258 @@ command dbdb.stack.load pFileName pStackName pMainFolder pSubFolder
       return true
     else
       open invisible stack pFileName
-      put the customProperties["pPropSet"] of stack pStackName into tData
+      put the customProperties[pPropSet] of stack pStackName into tData
       set the customproperties["daybedDB"] of this stack to tData
     end if
   end if
 end dbdb.stack.load
 
 command dbdb.stack.save pStackName pPropSet
-  -----
-  local tData
-  -----
-  
-  if pStackName is empty then put the short name of this stack & "_data" into pStackName
-  put the customproperties["daybedDB"] of this stack into tData
-  set the customProperties["pPropSet"] of stack pStackName to tData
-  save stack pStackName
+     -----
+     local tData
+     -----
+     if pPropSet is empty then put "daybedDB" into pPropSet
+     if pStackName is empty then put the short name of this stack & "_data" into pStackName
+     put the customproperties["daybedDB"] of this stack into tData
+     set the customProperties["pPropSet"] of stack pStackName to tData
+     save stack pStackName
 end dbdb.stack.save
 
 on ___DaybedDB_Sync_Functions__
 end ___DaybedDB_Sync_Functions__
 
-function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther pIDPrefix
-   ------
-   local tOptions, tSettings, tResult
-   ------
-   if pAuth is not empty then 
-      put pAuth into tOptions["authval"]
-      put "encoded" into tOptions["authtype"]
-   end if
-   put couch.authval(pUser,pPass) into tSettings["auth"]
-   get binarydecode("H*",pUser,tSettings["db"])
-   put pPrefix & "_" before tSettings["db"]
-   put pURL into tSettings["url"]
-   put 0 into tSettings["lastseq"]
-   put pConflict into tSettings["conflict"]
-   if tSettings["conflict"] is empty then put "server" into tSettings["conflict"]
-   put tSettings into tResult["dbdb"]
-   put pIDPrefix into tSettings["idprefix"]
-   if pOther is not empty then put pOther into tOptions["userdata"]
-   put couch.adduser(pURL,pUser,pPass,tOptions) into tResult["user"]
-   put couch.put("db",pURL,tSettings["db"],,,tOptions) into tResult["db"]
-   put couch.securedb("set",pURL,tSettings["db"],tOptions,pUser,,pUser) into tResult["security"]
-   return tResult
+function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther pIDPrefix pAppName pPurge
+  ------
+  local tOptions, tSettings, tResult
+  ------
+  if pAuth is not empty then 
+    put pAuth into tOptions["authval"]
+    put "encoded" into tOptions["authtype"]
+  end if
+  
+  put couch.authval(pUser,pPass) into tSettings["auth"]
+  
+  get binarydecode("H*",pUser,tSettings["db"])
+  put czVal(pPrefix,"user") & "_" before tSettings["db"]
+  
+  put pURL into tSettings["url"]
+  put 0 into tSettings["lastsync"]
+  put czVal(pConflict,"server") into tSettings["conflict"]
+  put czVal(pIDPrefix,"user") into tSettings["idprefix"]
+  put czVal(pAppName,tSettings["idprefix"]) into tSettings["appname"]
+  put czVal(pPurge,30) into tSettings["purge"]
+  
+  put tSettings into tResult["dbdb"]
+  
+  put pOther into tOptions["userdata"]
+  
+  put couch.adduser(pURL,pUser,pPass,tOptions) into tResult["user"]
+  put couch.put("db",pURL,tSettings["db"],,,tOptions) into tResult["db"]
+  
+  put couch.put("doc",pURL,tSettings["db"],dbdb.appdesigndoc(tSettings["appname"]),,tOptions) into tResult["ddoc"]
+  
+  put couch.securedb("set",pURL,tSettings["db"],tOptions,pUser,,pUser) into tResult["security"]
+  return tResult
 end dbdb.createuseranddb
 
-function dbdb.sync pArray
-   /*
-   Settings are passed in pArray["_dbdbsettings"]
-   this must include these keys: url, auth, db, lastseq
-   conflict: local, server, duplicate
-   optional:  idprefix
-   */
-   -----
-   local tKey, dbName, dbURL, tOptions, tParams
-   local upList, upDocs, downList, downDocs
-   local tempID, tRevS, tRevL, tCnt
-   -----
-   set itemdel to "-"
-   put pArray["_dbdbsettings"]["db"] into dbName
-   put pArray["_dbdbsettings"]["url"] into dbURL
-   put pArray["_dbdbsettings"]["auth"] into tOptions["authval"]
-   put "encoded" into tOptions["authtype"]
-   put pArray["_dbdbsettings"]["lastseq"] into tParams["since"]
-   
-   --scan local data for flagged changes and copy into upDocs
-   repeat for each key tKey in pArray
-      if tKey is "_dbdbsettings" then next repeat
-      if pArray[tKey]["_dbdbflag"] is empty then next repeat
-      delete variable pArray[tKey]["_dbdbflag"]
-      put pArray[tKey] into upDocs["docs"][tKey]
-      if pArray[tKey]["_delete"] then delete variable pArray[tKey]
-   end repeat
-   
-   --download changes stream
-   put couch.get("changes",dbURL,dbName,,tParams,tOptions) into downList
-   put downList["last_seq"] into pArray["_dbdbsettings"]["lastseq"]
-   
-   --scan change log
-   repeat for each key tKey in downList["results"]
-      put downList["results"][tKey]["id"] into tempID
-      
-      --skip documents not related if applicable
-      if pArray["_dbdbsettings"]["idprefix"] is not empty and  pArray["_dbdbsettings"]["idprefix"] is not "uuid" then
-         if not(tempID begins with pArray["_dbdbsettings"]["idprefix"]) then next repeat
+function dbdb.sync pArray pForceFull
+  /*
+  Settings are passed in pArray["_dbdbsettings"]
+  */
+  --TODO: add audit trail with revision numbers and timestamps?
+  -----
+  local tKey, dbName, dbURL, dbDdoc, tOptions, tParams
+  local upList, upDocs, downList, downDocs
+  local tempID, tRevS, tRevL, tCnt
+  -----
+  put pArray["_dbdbsettings"]["lastsync"] into tParams["startkey"]
+  put the seconds into syncTime
+  put syncTime into pArray["_dbdbsettings"]["lastsync"]
+  
+  put pArray["_dbdbsettings"]["db"] into dbName
+  put pArray["_dbdbsettings"]["url"] into dbURL
+  put "daybed" & pArray["_dbdbsettings"]["appname"] into dbDdoc
+  put pArray["_dbdbsettings"]["auth"] into tOptions["authval"]
+  put "encoded" into tOptions["authtype"]
+  
+  --scan local data for flagged changes and copy into upDocs
+  repeat for each key tKey in pArray
+    if tKey is "_dbdbsettings" then next repeat
+    if pArray[tKey]["dbdb"]["flag"] is empty or pArray[tKey]["dbdb"]["flag"] is "synced" then next repeat
+    if pArray[tKey]["dbdb"]["flag"]  is "delete" then put true into pArray[tKey]["dbdb"]["deleted"]
+    
+    put pArray["_dbdbsettings"]["lastsync"] into pArray[tKey]["dbdb"]["lastsync"]
+    put empty into pArray[tKey]["dbdb"]["flag"]
+    put pArray[tKey] into upDocs["docs"][tKey]
+    if pArray[tKey]["_delete"] then delete variable pArray[tKey]
+  end repeat
+  
+  --download list with ddoc using synctime as key filter
+  put "view" into tOptions["ddoc"]["func"]
+  put "app" into tOptions["ddoc"]["name"]
+  put couch.get("design",dbURL,dbName,dbDdoc,tParams,tOptions) into downList
+  
+  --scan change log, record by record
+  repeat for each key tKey in downList["rows"]
+    put downList["rows"][tKey]["value"]["id"] into tempID
+    
+    --for later, we'll double check that all documents are on server
+    put tempID & cr after downlist["idlist"]
+    
+    --skip documents not related if applicable
+    if pArray["_dbdbsettings"]["idprefix"] is not empty and pArray["_dbdbsettings"]["idprefix"] is not "uuid" then
+      if not(tempID begins with pArray["_dbdbsettings"]["idprefix"]) then next repeat
+    end if
+    
+    --delete documents locally that have been deleted on the server
+    if downList["rows"][tKey]["value"]["deleted"]  then
+      delete variable pArray[tempID]
+      next repeat
+    end if
+    
+    --if document doesn't exist locally, flag it for download
+    if pArray[tempID] is empty then
+      put tempID into downDocs["keys"][tKey]
+      next repeat
+    end if
+    
+    --compare revision numbers
+    set itemdel to "-"
+    put item 1 of downList["rows"][tKey]["value"]["rev"] into tRevS
+    put item 1 of pArray[tempID]["_rev"] into tRevL
+    
+    if tRevL = tRevS then next repeat
+    
+    if tRevL > tRevS then
+      --This shouldn't happen
+      --This resets the revID and reuploads the doc
+      --Unless it is already flagged for upload, in which case rev is updated
+      if upDocs[tempID] is empty then
+        put pArray[tempID] into upDocs["docs"][tempID]
+        put downList["rows"][tKey]["value"]["rev"] into upDocs["docs"][tempID]["_rev"]
+      else if pArray[tempID] is not empty then
+        put downList["rows"][tKey]["value"]["rev"] into pArray[tempID]["_rev"]
+      end if
+      next repeat
+    end if
+    
+    if tRevL < tRevS then
+      --If the local doc hasn't been updated, it will be updated
+      if upDocs["docs"][tempID] is empty then 
+        put tempID into downDocs["keys"][tKey]
+        next repeat
       end if
       
-      --delete documents locally that have been deleted on the server
-      if downList["results"][tKey]["deleted"] then
-         delete variable pArray[tempID]
-         delete variable upDocs[tempID]
-         next repeat
+      
+      put "server" into pArray["_dbdbsettings"]["conflict"]
+      
+      --if the local doc has been updated and the server doc has been updated:
+      switch pArray["_dbdbsettings"]["conflict"]
+        case "local"
+          put downList["rows"][tKey]["value"]["rev"] into upDocs["docs"][tempID]["_rev"]
+          break
+        case "server"
+          put tempID into downDocs["keys"][tKey]
+          break
+        case "duplicate"
+          put tempID into downDocs["keys"][tKey]
+          delete variable upDocs["docs"][tempID]
+          put dbdb.newdocid() into tNewID
+          put pArray[tempID] into upDocs["docs"][tNewID]
+          put pArray[tempID] into pArray[tNewID]
+          delete variable upDocs["docs"][tNewID]["_rev"]
+          break
+      end switch
+    end if
+  end repeat
+  
+  --doublecheck that all local files are on server
+  repeat for each key tKey in pArray
+    if char 1 of tKey is "_" then next repeat
+    if tKey is among the lines of downList["idlist"] then next repeat
+    put pArray["_dbdbsettings"]["lastsync"] into pArray[tKey]["dbdb"]["last_updated"]
+    put pArray[tempID] into upDocs["docs"][tempID]
+  end repeat
+  
+  --upload local docs that are new or have been modified
+  if upDocs["docs"] is not empty then
+    put jsonArrayMaker(upDocs["docs"]) into upDocs["docs"]
+    put couch.post("bulk_docs",dbURL,dbName,upDocs,tParams,tOptions) into upList
+    repeat for each key tKey in upList
+      put upList[tKey]["id"] into tempID
+      if pArray[tempID]["_deleted"] then
+        delete variable pArray[tempID]
+      else
+        put upList[tKey]["rev"] into pArray[tempID]["_rev"]
       end if
-      
-      --if document doesn't exist locally, flag it for download
-      if pArray[tempID] is empty then
-         put tempID into downDocs["keys"][tKey]
-         next repeat
-      end if
-      
-      --compare revision numbers
-      put item 1 of downList["results"][tKey]["changes"][1]["rev"] into tRevS
-      put item 1 of pArray[tempID]["_rev"] into tRevL
-      
-      if tRevL = tRevS then next repeat
-      
-      if tRevL > tRevS then
-         --This shouldn't happen
-         --This resets the revID and reuploads the doc
-         --Unless it is already flagged for upload, in which case rev is updated
-         if upDocs[tempID] is empty then
-            put pArray[tempID] into upDocs["docs"][tempID]
-            put downList["results"][tKey]["changes"][1]["rev"] into upDocs["docs"][tempID]["_rev"]
-         else if pArray[tempID] is not empty then
-            put downList["results"][tKey]["changes"][1]["rev"] into pArray[tempID]["_rev"]
-         end if
-         next repeat
-      end if
-      
-      if tRevL < tRevS then
-         --If the local doc hasn't been updated, it will be updated
-         if upDocs[tempID] is empty then 
-            put tempID into downDocs["keys"][tKey]
-            next repeat
-         end if
-         
-         --if the local doc has been updated and the server doc has been updated:
-         switch pArray["_dbdbsettings"]["conflict"]
-            case "local"
-               put downList["results"][tKey]["changes"][1]["rev"] into upDocs["docs"][tempID]["_rev"]
-               break
-            case "server"
-               put tempID into downDocs["keys"][tKey]
-               break
-            case "duplicate"
-               put tempID into downDocs["keys"][tKey]
-               delete variable upDocs[tempID]
-               put pArray[tempID] into upDocs[tempID & "_conflict"]
-               delete variable upDocs[tempID & "_conflict"]["_rev"]
-               break
-         end switch
-      end if
-   end repeat
-   
-   --upload local docs that are new or have been modified
-   if upDocs["docs"] is not empty then
-      put jsonArrayMaker(upDocs["docs"]) into upDocs["docs"]
-      put couch.post("bulk_docs",dbURL,dbName,upDocs,tParams,tOptions) into upList
-      repeat for each key tKey in upList
-         put upList[tKey]["id"] into tempID
-         if pArray[tempID]["_deleted"] then
-            delete variable pArray[tempID]
-         else
-            put upList[tKey]["rev"] into pArray[tempID]["_rev"]
-         end if
-      end repeat
-   end if
-   
-   --download server docs that are new or have been modified
-   if downDocs["keys"] is not empty then
-      put true into tParams["include_docs"]
-      put jsonArrayMaker(downDocs["keys"]) into downDocs["keys"]
-      put couch.post("all_docs",dbURL,dbName,downDocs,tParams,tOptions) into downList
-      repeat for each key tKey in downList["rows"]
-         put downList["rows"][tKey]["id"] into tempID
-         put downList["rows"][tKey]["doc"] into pArray[tempID]
-      end repeat
-   end if
-   
-   delete variable pArray[empty]
-   
-   return pArray
+    end repeat
+  end if
+  
+  --download server docs that are new or have been modified
+  if downDocs["keys"] is not empty then
+    put empty into tParams
+    put true into tParams["include_docs"]
+    put jsonArrayMaker(downDocs["keys"]) into downDocs["keys"]
+    put couch.post("all_docs",dbURL,dbName,downDocs,tParams,tOptions) into downList
+    repeat for each key tKey in downList["rows"]
+      put downList["rows"][tKey]["id"] into tempID
+      put downList["rows"][tKey]["doc"] into pArray[tempID]
+    end repeat
+  end if
+  
+  delete variable pArray[empty]
+  
+  repeat for each key tKey in pArray
+    if char 1 of tKey is "_" then next repeat
+    put "synced" into pArray[tKey]["dbdb"]["flag"]
+  end repeat
+  
+  return pArray
 end dbdb.sync
 
-function dbdb.newdocid
+command dbdb.purge
+  --TODO: add purge function
+end dbdb.purge
+
+private function dbdb.newdocid pSettings
    -----
-   local tSett, tNewID
+   local tNewID
    -----
-   put the daybedDB["_dbdbsettings"] of this stack into tSett
-   if tSett["idprefix"] is empty then
+   if pSettings is empty then put the daybedDB["_dbdbsettings"] of this stack into pSettings
+   if pSettings["idprefix"] is empty then
       put "db_" into tNewID
-   else if tSett["idprefix"] is "uuid" then
-      return uuid("random")
+   else if pSettings["idprefix"] is "uuid" then
+     return uuid("random")
+   else
+     put pSettings["idprefix"] into tNewID
    end if
    put the milliseconds after tNewID
    return tNewID
 end dbdb.newdocid
+
+function dbdb.appdesigndoc pAppName
+   local tDDoc, tApp
+   ------
+   put "_design/daybed" & pAppName into tDDoc["_id"]
+   put quote & pAppName & quote into tApp
+   put "function (doc) { if(doc.dbdb.app == " & quote & pAppName & quote & ") emit(doc.dbdb.lastsync,{" into tDDoc["views"]["app"]["map"]
+   put quote & "app" & quote & colon & "doc.dbdb.app" & comma  after tDDoc["views"]["app"]["map"]
+   put quote & "id" & quote & colon & "doc._id" & comma  after tDDoc["views"]["app"]["map"]
+   put quote & "deleted" & quote & colon & "doc.dbdb.deleted" & comma  after tDDoc["views"]["app"]["map"]
+   put quote & "rev" & quote & colon & "doc._rev" after tDDoc["views"]["app"]["map"]
+   put "});}"  after tDDoc["views"]["app"]["map"]
+   
+   put "function (doc) { if(doc.dbdb.app ==" && quote & pAppName & quote && "& doc.dbdb.deleted == true) emit(doc.dbdb.lastsync,{" into tDDoc["views"]["purge"]["map"]
+   put quote & "app" & quote & colon & "doc.dbdb.app" & comma  after tDDoc["views"]["purge"]["map"]
+   put quote & "id" & quote & colon & "doc._id" & comma  after tDDoc["views"]["purge"]["map"]
+   put quote & "deleted" & quote & colon & "doc.dbdb.deleted" & comma  after tDDoc["views"]["purge"]["map"]
+   put quote & "rev" & quote & colon & "doc._rev" after tDDoc["views"]["purge"]["map"]
+   put "});}"  after tDDoc["views"]["purge"]["map"]
+
+   put "1.8.5" into tDDoc["version"]
+   put "javascript" into tDDoc["language"]
+   return tDDoc
+end dbdb.appdesigndoc
 
 on ___CouchDB_Internal_Functions___
 end ___CouchDB_Internal_Functions___
@@ -834,7 +894,10 @@ end couch.aType
 private function couch.ddoc pDocID pOptions
   if pDocID is empty then put pOptions["docid"] into pDocID
   if char 1 to 7 of pDocID is not "_design" then put "_design/" before pDocID
-  if pOptions["ddoc"]["func"] is not empty then put "/_" & pOptions["ddoc"]["func"] after pDocID
+  if pOptions["ddoc"]["func"] is not empty then 
+    if char 1 of pOptions["ddoc"]["func"] is not "_" then put "_" before pOptions["ddoc"]["func"]
+    put "/" & pOptions["ddoc"]["func"] after pDocID
+  end if
   if pOptions["ddoc"]["name"] is not empty then put "/" & pOptions["ddoc"]["name"] after pDocID
   if pOptions["ddoc"]["otherid"] is not empty then put "/" & pOptions["ddoc"]["otherid"] after pDocID
   if pOptions["ddoc"]["otherfunc"] is not empty then put "/" & pOptions["ddoc"]["otherfunc"] after pDocID
@@ -860,21 +923,6 @@ private function couch.cookie pResult
   end repeat
 end couch.cookie
 
-private function couch.simplearray pKey pDoc
-  --MARK: REMOVE?
-  -----
-  local tJson, tCount
-  -----
-  put the number of lines in the keys of pDoc into tCount
-  put "{"&quote&pKey&quote&colon&" [" into tJson
-  repeat with x=1 to tCount
-    put quote & pDoc[x] & quote after tJson
-    if x<tCount then put comma after tJson
-  end repeat
-  put "]  }" after tJson
-  return tJson
-end couch.simplearray
-
 private command couch.setHeaders pOptions
   -----
   local couchHeaders
@@ -888,14 +936,15 @@ private command couch.setHeaders pOptions
     put "Content-Type:"&&pOptions["attachtype"] into couchHeaders
   end if
   switch pOptions["authtype"]
-    case "login"
-      put "Authorization: Basic"&& base64encode(pOptions["authval"]) & cr before couchHeaders
-      break
     case "encoded"
       put "Authorization: Basic"&& pOptions["authval"] & cr before couchHeaders
       break
     case "cookie"
       put "Cookie: AuthSession="& pOptions["authval"] &cr before couchHeaders
+      break
+    default
+    case "login"
+      put "Authorization: Basic"&& base64encode(pOptions["authval"]) & cr before couchHeaders
       break
   end switch
   set the httpheaders to couchHeaders
@@ -903,7 +952,7 @@ end couch.setHeaders
 
 private function couch.DBURL pURL pDB pParams pFunk pDocID
   if pDB is not empty then put urlencode(pDB) into pDB
-  if pDocID is not empty then put urlencode(pDocID) into pDocID
+  if pDocID is not empty and char 1 of pDocID is not "_" then put urlencode(pDocID) into pDocID
   if char 1 to 4 of pURL is not "http" then put "http://" before pURL
   if char -1 of pURL is slash then put empty into char -1 of pURL
   
@@ -972,10 +1021,6 @@ end couch.getrev
 on ___Misc_Functions___
 end ___Misc_Functions___
 
---constant jsonLibName = "fastJSON"
---constant jsonLibName = "easyJSON"
-constant jsonLibName = "mergJSON"
-
 function j2a pJson asUnicode pSkipValidation
   -----
   local tEmpty,tArray
@@ -1028,6 +1073,14 @@ function jsonArrayMaker pArray
   return newArray
 end jsonArrayMaker
 
+private function czVal pValue pDefault
+   if pValue is empty or pValue is "default" then
+      return pDefault
+   else
+      return pValue
+   end if
+end czVal
+
 private function c2a pList
   split pList by comma
   if pList is empty then put empty into pList[1]
@@ -1075,33 +1128,6 @@ private function array2list pArray
   end repeat
   return tList
 end array2list
-
-private function keyVal pKey pVal
-  --MARK: REMOVE?
-  ----- 
-  local tReturn
-  -----
-  put quote & pKey & quote & colon & quote & pVal & quote into tReturn
-  return tReturn
-end keyVal  
-
-private command  ifEmptyFill @pFillMe pValue
-  if pFillMe is empty then put pValue into pFillMe
-end ifEmptyFill
-
-private function convertParams pParam
-  --MARK: REMOVE?
-  -----
-  local temp
-  -----
-  put pParam into temp
-  if temp is empty then return empty
-  split temp by return and tab
-  repeat for each key theKey in temp
-    if temp[theKey] is empty then delete variable temp[theKey]
-  end repeat
-  return temp
-end convertParams
 
 private function contentTypeCheck pFileName pType
   -----
@@ -1548,67 +1574,66 @@ end fast.arrayToJson
 #
 ##
 
-constant kJSONStart = "{"
-constant kJSONEnd = "}"
-constant kJSONArrayStart = "["
-constant kJSONArrayEnd = "]"
-constant kJSONDelimiter = ":"
-constant kValidJSONDelimiters = "{}[],:"
-
 function isJson pJson
-  ##local tToken, tDepth
-  local n
-  local tObjectCount, tArrayCount
-  
-  put 0 into tObjectCount
-  put 0 into tArrayCount
-  tokenize pJson
-  
-  /*
-  repeat for each element tToken in sJson
-    if tToken is in "{[" then add 1 to tDepth
-    if tToken is in "}]" then subtract 1 from tDepth
-  end repeat
-  
-  if tDepth <> 0 then return false
-  */
-  
-  ##
-  ## New code to validate JSON. Catches mis-matched tokens
-  ## Adds roughly 10% time to fastJson. Still debating in my head if
-  ## this is worth the extra time verses just a basic check...
-  ##
-  
-  put 2 into n
-  repeat for each element tToken in sJson
-    if (sJson[n-1] is not in kValidJSONDelimiters) and (sJson[n] is not in kValidJSONDelimiters) then
-      return false
-    end if
-    switch tToken
-      case kJSONStart
-        add 1 to tObjectCount
-        break
-      case kJSONEnd
-        subtract 1 from tObjectCount
-        break
-      case kJSONArrayStart
-        add 1 to tArrayCount
-        break
-      case kJSONArrayEnd
-        subtract 1 from tArrayCount
-        break
-    end switch
-    add 1 to n
-  end repeat
-  if tObjectCount is not 0 then
-    put sNumTokens & cr after msg
-    return "ERR: unbalanced objects:" && tObjectCount
-  end if
-  if tArrayCount is not 0 then
-    return "ERR: unbalanced arrays:" && tArrayCount
-  end if
-  
-  return true
+     ##local tToken, tDepth
+     constant kJSONStart = "{"
+     local kJSONEnd = "}"
+     local kJSONArrayStart = "["
+     local kJSONArrayEnd = "]"
+     local kJSONDelimiter = ":"
+     local kValidJSONDelimiters = "{}[],:"
+     local n
+     local tObjectCount, tArrayCount
+     
+     put 0 into tObjectCount
+     put 0 into tArrayCount
+     tokenize pJson
+     
+     /*
+     repeat for each element tToken in sJson
+          if tToken is in "{[" then add 1 to tDepth
+          if tToken is in "}]" then subtract 1 from tDepth
+     end repeat
+     
+     if tDepth <> 0 then return false
+     */
+     
+     ##
+     ## New code to validate JSON. Catches mis-matched tokens
+     ## Adds roughly 10% time to fastJson. Still debating in my head if
+     ## this is worth the extra time verses just a basic check...
+     ##
+     
+     put 2 into n
+     repeat for each element tToken in sJson
+          if (sJson[n-1] is not in kValidJSONDelimiters) and (sJson[n] is not in kValidJSONDelimiters) then
+               return false
+          end if
+          switch tToken
+               case kJSONStart
+                    add 1 to tObjectCount
+                    break
+               case kJSONEnd
+                    subtract 1 from tObjectCount
+                    break
+               case kJSONArrayStart
+                    add 1 to tArrayCount
+                    break
+               case kJSONArrayEnd
+                    subtract 1 from tArrayCount
+                    break
+          end switch
+          add 1 to n
+     end repeat
+     if tObjectCount is not 0 then
+          put sNumTokens & cr after msg
+          return "ERR: unbalanced objects:" && tObjectCount
+     end if
+     if tArrayCount is not 0 then
+          return "ERR: unbalanced arrays:" && tArrayCount
+     end if
+     
+     return true
 end isJson
 
 
