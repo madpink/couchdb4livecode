@@ -492,7 +492,7 @@ command dbdb.local.setdoc pDoc pDelete
      put the daybedDB["_dbdbsettings"] of this stack into tSett
      if pDoc["_id"] is empty then put dbdb.newdocid(tSett) into pDoc["_id"]
      put pDoc["_id"] into tID
-     put the seconds into pDoc["dbdb"]["last_updated"]
+     put the seconds into pDoc["dbdb"]["lastupdated"]
      put tSett["appname"] into pDoc["dbdb"]["app"]
      if pDoc["_rev"] is not empty then
           put "update" into pDoc["dbdb"]["flag"]
@@ -508,7 +508,7 @@ command dbdb.local.deletedoc pDocID
   -----
   put the daybedDB[pDocID] of this stack into tDoc
   put "delete" into tDoc["dbdb"]["flag"]
-  put the seconds into pDoc["dbdb"]["last_updated"]
+  put the seconds into pDoc["dbdb"]["lastupdated"]
   set the daybedDB[pDocID] of this stack to tDoc
 end dbdb.local.deletedoc
 
@@ -609,7 +609,7 @@ function dbdb.sync pArray pForceFull
   
   --scan local data for flagged changes and copy into upDocs
   repeat for each key tKey in pArray
-    if tKey is "_dbdbsettings" then next repeat
+    if char 1 of tKey is "_" then next repeat
     if pArray[tKey]["dbdb"]["flag"] is empty or pArray[tKey]["dbdb"]["flag"] is "synced" then next repeat
     if pArray[tKey]["dbdb"]["flag"]  is "delete" then put true into pArray[tKey]["dbdb"]["deleted"]
     
@@ -702,8 +702,8 @@ function dbdb.sync pArray pForceFull
   repeat for each key tKey in pArray
     if char 1 of tKey is "_" then next repeat
     if tKey is among the lines of downList["idlist"] then next repeat
-    put pArray["_dbdbsettings"]["lastsync"] into pArray[tKey]["dbdb"]["last_updated"]
-    put pArray[tempID] into upDocs["docs"][tempID]
+    put pArray["_dbdbsettings"]["lastsync"] into pArray[tKey]["dbdb"]["lastupdated"]
+    put pArray[tKey] into upDocs["docs"][tKey]
   end repeat
   
   --upload local docs that are new or have been modified
@@ -746,7 +746,7 @@ command dbdb.purge
   --TODO: add purge function
 end dbdb.purge
 
-private function dbdb.newdocid pSettings
+function dbdb.newdocid pSettings
    -----
    local tNewID
    -----
