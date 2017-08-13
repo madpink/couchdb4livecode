@@ -612,7 +612,7 @@ function dbdb.sync pArray pForceFull
     if char 1 of tKey is "_" then next repeat
     if pArray[tKey]["dbdb"]["flag"] is empty or pArray[tKey]["dbdb"]["flag"] is "synced" then next repeat
     if pArray[tKey]["dbdb"]["flag"]  is "delete" then put true into pArray[tKey]["dbdb"]["deleted"]
-    
+    if pArray[tKey]["dbdb"]["deleted"] then put "delete" into pArray[tKey]["dbdb"]["flag"]
     put pArray["_dbdbsettings"]["lastsync"] into pArray[tKey]["dbdb"]["lastsync"]
     put empty into pArray[tKey]["dbdb"]["flag"]
     put pArray[tKey] into upDocs["docs"][tKey]
@@ -702,7 +702,7 @@ function dbdb.sync pArray pForceFull
   repeat for each key tKey in pArray
     if char 1 of tKey is "_" then next repeat
     if tKey is among the lines of downList["idlist"] then next repeat
-    put pArray["_dbdbsettings"]["lastsync"] into pArray[tKey]["dbdb"]["lastupdated"]
+    if pArray["_dbdbsettings"]["lastsync"] is not empty then next repeat
     put pArray[tKey] into upDocs["docs"][tKey]
   end repeat
   
@@ -757,8 +757,9 @@ function dbdb.newdocid pSettings
      return uuid("random")
    else
      put pSettings["idprefix"] into tNewID
+     if char -1 of tNewID is not "_" then put "_" after tNewID
    end if
-   put the milliseconds after tNewID
+   put (the seconds - 979668822) after tNewID
    return tNewID
 end dbdb.newdocid
 
