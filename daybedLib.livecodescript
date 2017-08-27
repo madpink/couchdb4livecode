@@ -350,9 +350,9 @@ function qouch.putdoc pDoc pParams
 end qouch.putdoc
 
 function qouch.alldocs pInclude pParams
-     if pInclude then put true into pCDB["params"]["include_docs"]
-     
-  return couch.get("alldoc",sCouchURL,sDatabase,,qouch.auth(),pParams)
+     --if pInclude then put true into pCDB["params"]["include_docs"]
+     if pInclude then put true into pParams["include_docs"]
+  return couch.get("all_docs",sCouchURL,sDatabase,,pParams,qouch.auth())
 end qouch.alldocs
 
 function qouch.changes pLast pInclude pParams
@@ -742,8 +742,26 @@ function dbdb.sync pArray pForceFull
   return pArray
 end dbdb.sync
 
-command dbdb.purge
+command dbdb.purge pSettings
   --TODO: add purge function
+  local tOptions, tParams, tKey, purgeList, purgeDocs
+  ---
+  put the seconds - (pSettings["purge"] * 86400) into tOptions["endkey"]
+  put "purge" into tOptions["ddoc"]["name"]
+  put "encoded" into tOptions["authtype"]
+  put pSettings["auth"] into tOptions["authval"]
+  
+  put couch.get("ddoc-view",pSettings["url"],pSettings["db"],("daybed" & pSettings["appname"]),tParams,tOptions) into purgeList
+  
+  if purgeList["rows"] is empty then exit dbdb.purge
+  
+  repeat for each key tKey in purgeList["rows"]
+    put purgeList["rows"][tKey]["value"]["id"] into purgeDocs["docs"][tKey]["_id"]
+    put purgeList["rows"][tKey]["value"]["rev"] into purgeDocs["docs"][tKey]["_rev"]
+    put true into purgeDocs["docs"][tKey]["_deleted"]
+  end repeat
+  
+  put couch.post("bulk_docs",pSettings["url"],pSettings["db"],purgeDocs,tParams,tOptions) into upList
 end dbdb.purge
 
 function dbdb.newdocid pSettings
