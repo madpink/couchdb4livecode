@@ -1,5 +1,13 @@
+--name:  libDaybed
+--vers:  2.3.1
+--date:  2018-11-29
+--full:  Daybed - A Library for Apache CouchDB
+
+on ___DaybedDB___
+end ___DaybedDB___
+
 /*	
-Daybed - A Library for Apache CouchDB  version:  2.0.0  2017-08-05
+Daybed - A Library for Apache CouchDB
 contact:   pink @ mad.pink (aka Greg Miller)
 This is a simple library that calls CouchDB's REST functions.
 	
@@ -25,294 +33,294 @@ on ___CouchDB_Main_Functions___
 end ___CouchDB_Main_Functions___
 
 function couch.get pFunk pURL pDB pDocID pParams pOptions
-  ----- 
-  local tURL, tResult
-  -----
-  switch pFunk
-    case "db"
-      put empty into pDocID
-      put empty into pFunk		
-      break
-    case "localdoc"
-      put "_local/" before pDocID
-    case "doc"
-      put empty into pFunk		
-      break
-    case "slash"
-      put empty into pFunk
-      break
-    case "ddoc-view"
-    case "ddoc-list"
-    case "ddoc-show"
-    case "ddoc-update"
-      put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
-    case "design"
-    case "ddoc"
-      put couch.ddoc(pDocID,pOptions) into pDocID
-      put empty into pFunk
-      break
-    case "_config"
-    case "config"
-      if char 1 of pFunk is not "_" then put "_" before pFunk
-      put pOptions["section"] into pDocID
-      if pOptions["key"] is not empty then
-        put slash & pOptions["key"] after pDocID
-      end if
-      break
-    case "attach"
-      put empty into pFunk
-      put "/" & pOptions["attachment"] after pDocID
-      break
-    default
-      if char 1 of pFunk is not "_" then put "_" before pFunk
-      break
-  end switch
-  	   		
-  couch.setHeaders pOptions
-  put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-  
-  if pOptions["destination"] is not empty then
-    libURLDownloadToFile tURL, pOptions["destination"]
-    return "Done"
-  else
-    put URL(tURL) into tResult
-  end if
-  	
-  return couch.returnFormat(tResult,pOptions["format"])
+   -----  
+   local tURL, tResult
+   -----
+   switch pFunk
+      case "db"
+         put empty into pDocID
+         put empty into pFunk		
+         break
+      case "localdoc"
+         put "_local/" before pDocID
+      case "doc"
+         put empty into pFunk		
+         break
+      case "slash"
+         put empty into pFunk
+         break
+      case "ddoc-view"
+      case "ddoc-list"
+      case "ddoc-show"
+      case "ddoc-update"
+         put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
+      case "design"
+      case "ddoc"
+         put couch.ddoc(pDocID,pOptions) into pDocID
+         put empty into pFunk
+         break
+      case "_config"
+      case "config"
+         if char 1 of pFunk is not "_" then put "_" before pFunk
+         put pOptions["section"] into pDocID
+         if pOptions["key"] is not empty then
+            put slash & pOptions["key"] after pDocID
+         end if
+         break
+      case "attach"
+         put empty into pFunk
+         put "/" & pOptions["attachment"] after pDocID
+         break
+      default
+         if char 1 of pFunk is not "_" then put "_" before pFunk
+         break
+   end switch
+   	   		
+   couch.setHeaders pOptions
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   
+   if pOptions["destination"] is not empty then
+      libURLDownloadToFile tURL, pOptions["destination"]
+      return "Done"
+   else
+      put URL(tURL) into tResult
+   end if
+   	
+   return couch.returnFormat(tResult,pOptions["format"])
 end couch.get
 
 	
 function couch.put pFunk pURL pDB pDoc pParams pOptions
-  -----
-  local tURL, tResult, tRaw, temp, tFunktion
-  -----
-  put pFunk into tFunktion
-  switch pFunk
-    case "db"
-      put empty into pDoc
-      put empty into pFunk
-      break
-    case "localdoc"
-      put empty into pFunk
-      put "_local/" & pDoc["_id"] into pDocID
-      break
-    case "doc"
-      put empty into pFunk
-      put pDoc["_id"] into pDocID
-      break
-    case "attach" 
-      put empty into pFunk
-      put pOptions["docid"] & "/" & pOptions["attachname"] into pDocID
-      break
-    case "ddoc-view"
-    case "ddoc-list"
-    case "ddoc-show"
-    case "ddoc-update"
-      put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
-    case "design"
-    case "ddoc"
-      put pDoc["_id"] into pDocID
-      put couch.ddoc(pDocID,pOptions) into pDocID
-      put empty into pFunk
-      break
-    case "_config"
-    case "config"
-      if char 1 of pFunk is not "_" then put "_" before pFunk
-      put pOptions["section"] into pDocID
-      if pOptions["key"] is not empty then
-        put slash & pOptions["key"] after pDocID
-      end if
-      break
-    case "users"
-      put "org.couchdb.user:" & pDoc["name"] into pDocID
-      put pDocId into pDoc["_id"]
-      put "_users" into pDB
-      put empty into pFunk
-      break
-    default
-      if char 1 of pFunk is not "_" then put "_" before pFunk
-      break
-  end switch
-  
-  if pOptions["attachments"] is not empty then 
-    put couch.attachments(pOptions["attachments"]) into pDoc["_attachments"]
-  end if
-  
-  couch.setHeaders pOptions
-  put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-  
-  switch tFunktion
-    case "db"
-      put empty into URL(tURL)
-      break
-    case "_config"
-      put quote & pOptions["value"] & quote into pDoc
-      put pDoc into URL(tURL)
-      break
-    case "_revs_limit"
-      put pDoc into URL(tURL)
-      break
-    case "attach"
-      put couch.aType(pOptions["attachmode"],pOptions["attachpath"]) into tPath
-      put URL(tPath) into URL(tURL)
-      break
-    default
-      put a2j(pDoc) into tJson
-      replace "[null]" with "[]" in tJson
-      put tJson into URL(tURL)
-      break
-  end switch
-  put the urlResponse into tResult
-  return couch.returnFormat(tResult,pOptions["format"])
+   -----
+   local tURL, tResult, tRaw, temp, tFunktion
+   -----
+   put pFunk into tFunktion
+   switch pFunk
+      case "db"
+         put empty into pDoc
+         put empty into pFunk
+         break
+      case "localdoc"
+         put empty into pFunk
+         put "_local/" & pDoc["_id"] into pDocID
+         break
+      case "doc"
+         put empty into pFunk
+         put pDoc["_id"] into pDocID
+         break
+      case "attach" 
+         put empty into pFunk
+         put pOptions["docid"] & "/" & pOptions["attachname"] into pDocID
+         break
+      case "ddoc-view"
+      case "ddoc-list"
+      case "ddoc-show"
+      case "ddoc-update"
+         put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
+      case "design"
+      case "ddoc"
+         put pDoc["_id"] into pDocID
+         put couch.ddoc(pDocID,pOptions) into pDocID
+         put empty into pFunk
+         break
+      case "_config"
+      case "config"
+         if char 1 of pFunk is not "_" then put "_" before pFunk
+         put pOptions["section"] into pDocID
+         if pOptions["key"] is not empty then
+            put slash & pOptions["key"] after pDocID
+         end if
+         break
+      case "users"
+         put "org.couchdb.user:" & pDoc["name"] into pDocID
+         put pDocId into pDoc["_id"]
+         put "_users" into pDB
+         put empty into pFunk
+         break
+      default
+         if char 1 of pFunk is not "_" then put "_" before pFunk
+         break
+   end switch
+   
+   if pOptions["attachments"] is not empty then 
+      put couch.attachments(pOptions["attachments"]) into pDoc["_attachments"]
+   end if
+   
+   couch.setHeaders pOptions
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   
+   switch tFunktion
+      case "db"
+         put empty into URL(tURL)
+         break
+      case "_config"
+         put quote & pOptions["value"] & quote into pDoc
+         put pDoc into URL(tURL)
+         break
+      case "_revs_limit"
+         put pDoc into URL(tURL)
+         break
+      case "attach"
+         put couch.aType(pOptions["attachmode"],pOptions["attachpath"]) into tPath
+         put URL(tPath) into URL(tURL)
+         break
+      default
+         put a2j(pDoc) into tJson
+         replace "[null]" with "[]" in tJson
+         put tJson into URL(tURL)
+         break
+   end switch
+   put the urlResponse into tResult
+   return couch.returnFormat(tResult,pOptions["format"])
 end couch.put
 
 	
 function couch.post pFunk pURL pDB pDoc pParams pOptions 
-  -----
-  local tURL, tResult, tJson
-  -----
-  switch pFunk
-    case "db"
-      put empty into pFunk
-      break
-    case "changes"
-      put "_doc_ids" into pParams["filter"]
-      break
-    case "compactdesign"
-      put "_compact" into pFunk
-      put pDoc into pDocID
-      break
-    case "ddoc-view"
-    case "ddoc-list"
-    case "ddoc-show"
-    case "ddoc-update"
-      put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
-    case "design"   
-    case "ddoc"
-      put pDoc["_id"] into pDocID
-      put couch.ddoc(pDocID,pOptions) into pDocID
-      put empty into pFunk
-      break
-    default
-      if char 1 of pFunk is not "_" then put "_" before pFunk
-      break
-  end switch
-  	   	
-  couch.setHeaders pOptions
-  put a2j(pDoc) into tJson
-  put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-  post tJson to URL(tURL)
-  put the urlResponse into tResult
-  switch pFunk
-    case "_session"
-      return couch.cookie(tResult)
-      break
-    default
-      return couch.returnFormat(tResult,pOptions["format"])
-      break
-  end switch
+   -----
+   local tURL, tResult, tJson
+   -----
+   switch pFunk
+      case "db"
+         put empty into pFunk
+         break
+      case "changes"
+         put "_doc_ids" into pParams["filter"]
+         break
+      case "compactdesign"
+         put "_compact" into pFunk
+         put pDoc into pDocID
+         break
+      case "ddoc-view"
+      case "ddoc-list"
+      case "ddoc-show"
+      case "ddoc-update"
+         put char 6 to -1 of pFunk into pOptions["ddoc"]["func"] 
+      case "design"   
+      case "ddoc"
+         put pDoc["_id"] into pDocID
+         put couch.ddoc(pDocID,pOptions) into pDocID
+         put empty into pFunk
+         break
+      default
+         if char 1 of pFunk is not "_" then put "_" before pFunk
+         break
+   end switch
+   	   	
+   couch.setHeaders pOptions
+   put a2j(pDoc) into tJson
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   post tJson to URL(tURL)
+   put the urlResponse into tResult
+   switch pFunk
+      case "_session"
+         return couch.cookie(tResult)
+         break
+      default
+         return couch.returnFormat(tResult,pOptions["format"])
+         break
+   end switch
 end couch.post
 		
 function couch.delete pFunk pURL pDB pDocID pParams pOptions 
-  -----
-  local tURL, tResult
-  -----
-  switch pFunk
-    case "db"
-      put empty into pDocID
-      put empty into pFunk
-      break
-    case "attach"
-      put empty into pFunk
-      put "/" & pOptions["attachment"] after pDocID
-      break	
-    case "doc"
-      put empty into pFunk
-      break
-    case "localdoc"
-      put empty into pFunk
-      put "_local/" before pDocID
-      break
-    default
-      if char 1 of pFunk is not "_" then put "_" before pFunk
-      break
-  end switch
-  couch.setHeaders
-  put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
-  delete URL(tURL)
-  put the urlResponse into tResult
-  return couch.returnFormat(tResult,pOptions["format"])
+   -----
+   local tURL, tResult
+   -----
+   switch pFunk
+      case "db"
+         put empty into pDocID
+         put empty into pFunk
+         break
+      case "attach"
+         put empty into pFunk
+         put "/" & pOptions["attachment"] after pDocID
+         break	
+      case "doc"
+         put empty into pFunk
+         break
+      case "localdoc"
+         put empty into pFunk
+         put "_local/" before pDocID
+         break
+      default
+         if char 1 of pFunk is not "_" then put "_" before pFunk
+         break
+   end switch
+   couch.setHeaders
+   put couch.DBURL(pURL,pDB,pParams,pFunk,pDocID) into tURL
+   delete URL(tURL)
+   put the urlResponse into tResult
+   return couch.returnFormat(tResult,pOptions["format"])
 end couch.delete
 
 function couch.adduser pURL pUser pPass pOptions 
-  -----
-  local tResult
-  local tReturnFormat,tUser
-  -----
-  
-  put pOptions["format"] into tReturnFormat
-  put "json" into pOptions["format"]
-  put pUser into tUser["name"]
-  put pPass into tUser["password"]
-  put "user" into tUser["type"]
-  if pOptions["roles"] is not empty then
-    put pOptions["roles"] into tUser["roles"] 
-  else
-    put empty into tUser["roles"][1]
-  end if
-  if pOptions["userdata"] is not empty then put pOptions["userdata"] into tUser["userdata"]
-  if pOptions["registration"] is not empty then put pOptions["registration"] into tUser["registration"]
-  put couch.put("users",pURL,,tUser,,pOptions) into tResult
-  return couch.returnFormat(tResult,tReturnFormat)
+   -----
+   local tResult
+   local tReturnFormat,tUser
+   -----
+   
+   put pOptions["format"] into tReturnFormat
+   put "json" into pOptions["format"]
+   put pUser into tUser["name"]
+   put pPass into tUser["password"]
+   put "user" into tUser["type"]
+   if pOptions["roles"] is not empty then
+      put pOptions["roles"] into tUser["roles"] 
+   else
+      put empty into tUser["roles"][1]
+   end if
+   if pOptions["userdata"] is not empty then put pOptions["userdata"] into tUser["userdata"]
+   if pOptions["registration"] is not empty then put pOptions["registration"] into tUser["registration"]
+   put couch.put("users",pURL,,tUser,,pOptions) into tResult
+   return couch.returnFormat(tResult,tReturnFormat)
 end couch.adduser
 
 function couch.securedb pFunk pURL pDB pOptions pAdminNames pAdminRoles pMemberNames pMemberRoles
-  -----
-  local returnFormat,tSecurity
-  local tResult
-  -----
-  
-  put pOptions["format"] into returnFormat
-  put "json" into pOptions["format"]
-  
-  switch pFunk
-    case "set"
-    case "replace"
-      put "_security" into tSecurity["_id"]
-      put c2a(pAdminNames) into tSecurity["admins"]["names"]
-      put c2a(pAdminRoles)into tSecurity["admins"]["roles"]
-      put c2a(pMemberNames) into tSecurity["members"]["names"]
-      put c2a(pMemberRoles) into tSecurity["members"]["roles"]
-      put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
-      break
-    case "get"
-      put couch.get("doc",pURL,pDB,"_security",,pOptions) into tResult
-      break
-    case "add"
-      put "array" into pOptions["format"]
-      put couch.get("doc",pURL,pDB,"_security",,pOptions) into tSecurity
-      put "_security" into tSecurity["_id"]
-      put add2list(pAdminNames,tSecurity["admins"]["names"]) into tSecurity["admins"]["names"]
-      put add2list(pAdminRoles,tSecurity["admins"]["roles"]) into tSecurity["admins"]["roles"]
-      put add2list(pMemberNames,tSecurity["members"]["names"]) into tSecurity["members"]["names"]
-      put add2list(pMemberRoles,tSecurity["members"]["roles"]) into tSecurity["members"]["roles"]
-      put "json" into pOptions["format"]
-      put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
-      break
-    case "remove"
-    case "delete"
-      put "array" into pOptions["format"]
-      put couch.get("doc",pURL,pDB,"_security",,pOptions) into tSecurity
-      put "_security" into tSecurity["_id"]
-      put delFromlist(pAdminNames,tSecurity["admins"]["names"]) into tSecurity["admins"]["names"]
-      put delFromlist(pAdminRoles,tSecurity["admins"]["roles"]) into tSecurity["admins"]["roles"]
-      put delFromlist(pMemberNames,tSecurity["members"]["names"]) into tSecurity["members"]["names"]
-      put delFromlist(pMemberRoles,tSecurity["members"]["roles"]) into tSecurity["members"]["roles"]
-      put "json" into pOptions["format"]
-      put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
-      break
-  end switch
-  return couch.returnFormat(tResult,returnFormat)
+   -----
+   local returnFormat,tSecurity
+   local tResult
+   -----
+   
+   put pOptions["format"] into returnFormat
+   put "json" into pOptions["format"]
+   
+   switch pFunk
+      case "set"
+      case "replace"
+         put "_security" into tSecurity["_id"]
+         put c2a(pAdminNames) into tSecurity["admins"]["names"]
+         put c2a(pAdminRoles)into tSecurity["admins"]["roles"]
+         put c2a(pMemberNames) into tSecurity["members"]["names"]
+         put c2a(pMemberRoles) into tSecurity["members"]["roles"]
+         put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
+         break
+      case "get"
+         put couch.get("doc",pURL,pDB,"_security",,pOptions) into tResult
+         break
+      case "add"
+         put "array" into pOptions["format"]
+         put couch.get("doc",pURL,pDB,"_security",,pOptions) into tSecurity
+         put "_security" into tSecurity["_id"]
+         put add2list(pAdminNames,tSecurity["admins"]["names"]) into tSecurity["admins"]["names"]
+         put add2list(pAdminRoles,tSecurity["admins"]["roles"]) into tSecurity["admins"]["roles"]
+         put add2list(pMemberNames,tSecurity["members"]["names"]) into tSecurity["members"]["names"]
+         put add2list(pMemberRoles,tSecurity["members"]["roles"]) into tSecurity["members"]["roles"]
+         put "json" into pOptions["format"]
+         put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
+         break
+      case "remove"
+      case "delete"
+         put "array" into pOptions["format"]
+         put couch.get("doc",pURL,pDB,"_security",,pOptions) into tSecurity
+         put "_security" into tSecurity["_id"]
+         put delFromlist(pAdminNames,tSecurity["admins"]["names"]) into tSecurity["admins"]["names"]
+         put delFromlist(pAdminRoles,tSecurity["admins"]["roles"]) into tSecurity["admins"]["roles"]
+         put delFromlist(pMemberNames,tSecurity["members"]["names"]) into tSecurity["members"]["names"]
+         put delFromlist(pMemberRoles,tSecurity["members"]["roles"]) into tSecurity["members"]["roles"]
+         put "json" into pOptions["format"]
+         put couch.put("doc",pURL,pDB,tSecurity,,pOptions) into tResult
+         break
+   end switch
+   return couch.returnFormat(tResult,returnFormat)
 end couch.securedb
 
 on ___CouchDB_Quick_Functions___
@@ -323,53 +331,66 @@ local sDatabase = "test"
 local sAuthentication = ""
 
 command qouch.init pDB pUser pPass pURL
-     if pURL is not empty then put pURL into sCouchURL
-     if pDB is not empty then 
-          if char -1 of pDB is "_" then 
-               put couch.userDB(pUser,pDB) into sDatabase
-          else
-               put pDB into sDatabase
-          end if
-     end if
-     if pUser is not empty then put base64encode(pUser & colon & pPass) into sAuthentication
+   if pURL is not empty then put pURL into sCouchURL
+   if pDB is not empty then 
+      if char -1 of pDB is "_" then 
+         put couch.userDB(pUser,pDB) into sDatabase
+      else
+         put pDB into sDatabase
+      end if
+   end if
+   if pUser is not empty then put base64encode(pUser & colon & pPass) into sAuthentication
 end qouch.init
 
 private function qouch.auth
-     local tOptions
-     put sAuthentication into tOptions["authval"]
-     put "encoded" into tOptions["authtype"]
-     return tOptions
+   local tOptions
+   put sAuthentication into tOptions["authval"]
+   put "encoded" into tOptions["authtype"]
+   return tOptions
 end qouch.auth
 
 function qouch.getdoc pDocID pParams
-  return couch.get("doc",sCouchURL,sDatabase,pDocID,qouch.auth(),pParams)
+   return couch.get("doc",sCouchURL,sDatabase,pDocID,qouch.auth(),pParams)
 end qouch.getdoc
 
 function qouch.putdoc pDoc pParams
-     return couch.put("doc",sCouchURL,sDatabase,pDoc,qouch.auth(),pParams)
+   return couch.put("doc",sCouchURL,sDatabase,pDoc,qouch.auth(),pParams)
 end qouch.putdoc
 
 function qouch.alldocs pInclude pParams
-     if pInclude then put true into pCDB["params"]["include_docs"]
-     
-  return couch.get("alldoc",sCouchURL,sDatabase,,qouch.auth(),pParams)
+   --if pInclude then put true into pCDB["params"]["include_docs"]
+   if pInclude then put true into pParams["include_docs"]
+   return couch.get("all_docs",sCouchURL,sDatabase,,pParams,qouch.auth())
 end qouch.alldocs
 
 function qouch.changes pLast pInclude pParams
-  if pLast is not empty then put pLast into pCDB["params"]["since"]
-  if pInclude then put true into pCDB["params"]["include_docs"]
-  return couch.get("changes",sCouchURL,sDatabase,,qouch.auth(),pParams)
+   if pLast is not empty then put pLast into pCDB["params"]["since"]
+   if pInclude then put true into pCDB["params"]["include_docs"]
+   return couch.get("changes",sCouchURL,sDatabase,,qouch.auth(),pParams)
 end qouch.changes
 
 function qouch.ddoc pDdoc pType pName pInclude pParams
-  if pInclude then put true into pCDB["params"]["include_docs"]
-  put pType into pCDB["options"]["ddoc"]["func"]
-  put pName into pCDB["options"]["ddoc"]["xtend"]
-  put couch.get("design",sCouchURL,sDatabase,pDdoc,qouch.auth(),pParams)
+   if pInclude then put true into pCDB["params"]["include_docs"]
+   put pType into pCDB["options"]["ddoc"]["func"]
+   put pName into pCDB["options"]["ddoc"]["xtend"]
+   put couch.get("design",sCouchURL,sDatabase,pDdoc,qouch.auth(),pParams)
 end qouch.ddoc
 
 on ___CouchDB_Experimental_Functions___
 end ___CouchDB_Experimental_Functions___
+
+command couch.db.example
+   local tCouch, tResults
+   
+   put "get" into tCouch["verb"]
+   put "192.168.23.42:5984" into tCouch["url"]
+   put "doc" into tCouch["funk"]
+   put "rec541" into tCouch["docid"]
+   put "admin" into tCouch["options"]["user"]
+   put "trustno1" into tCouch["options"]["pass"]
+   
+   put couch.db(tCouch) into tResults
+end couch.db.example
 
 function couch.db pCouch  ---This is an experimental UberFunction
   /* 
@@ -435,7 +456,7 @@ end couch.userDB
 on ___DaybedDB_LocalProp_Sync__
 end ___DaybedDB_LocalProp_Sync__
 
-function dbdb.local.newuser pURL pUser pPass pAuth pPrefix pOther pConflict pIDPrefix pApp pPurge
+function dbdb.local.newuser pURL pUser pPass pAuth pPrefix pOther pConflict pIDPrefix pApp pPurge pType
   /*    pURL - full URL including port
   pPrefix - prefix of the db name (e.g. "user", "mppb")
   pUser - username    pPass - password
@@ -443,14 +464,24 @@ function dbdb.local.newuser pURL pUser pPass pAuth pPrefix pOther pConflict pIDP
   pConflict - (optional - defaults to server) local, server, duplicate  
   pAuth - (optional if "Admin party" is in effect) the admin authorization string 
   pIDPrefix - (optional) prefix for id numbers based on milliseconds 
-  pApp - (optional) application name for searches
+  
+  for userDB:
+  pApp - (optional for userdb) application name for searches 
+  for appDB:
+  pApp - application db name
+  
   pPurge - (optional) how often to purge deleted docs  */
   -----
   local tSettings
   -----
   set the customPropertySet of this stack to "daybedDB"
   
-  put dbdb.createuseranddb(pURL,pPrefix,pUser,pPass,pConflict,pAuth,pOther,pIDPrefix,pApp,pPurge) into tSettings
+  if pType is "appdb" then
+    put dbdb.appdb.createuser(pURL,pApp,pUser,pPass,pConflict,pAuth,pOther,pPurge) into tSettings
+  else
+    put dbdb.userdb.createuser(pURL,pPrefix,pUser,pPass,pConflict,pAuth,pOther,pIDPrefix,pApp,pPurge) into tSettings
+  end if
+  
   set the "_dbdbsettings" of this stack to tSettings["dbdb"]
   return tSettings
 end dbdb.local.newuser
@@ -486,20 +517,22 @@ command dbdb.local.sync
 end dbdb.local.sync
 
 command dbdb.local.setdoc pDoc pDelete
-     -----
-     local tID, tSett
-     -----
-     put the daybedDB["_dbdbsettings"] of this stack into tSett
-     if pDoc["_id"] is empty then put dbdb.newdocid(tSett) into pDoc["_id"]
-     put pDoc["_id"] into tID
-     put the seconds into pDoc["dbdb"]["lastupdated"]
-     put tSett["appname"] into pDoc["dbdb"]["app"]
-     if pDoc["_rev"] is not empty then
-          put "update" into pDoc["dbdb"]["flag"]
-     else 
-          put "new" into pDoc["dbdb"]["flag"]
-     end if
-     set the daybedDB[tID] of this stack to pDoc
+  -----
+  local tID, tSett
+  -----
+  put the daybedDB["_dbdbsettings"] of this stack into tSett
+  if pDoc["_id"] is empty then put dbdb.newdocid(tSett) into pDoc["_id"]
+  put pDoc["_id"] into tID
+  put the seconds into pDoc["dbdb"]["lastupdated"]
+  put tSett["appname"] into pDoc["dbdb"]["app"]
+  if pDoc["_rev"] is not empty then
+    put "update" into pDoc["dbdb"]["flag"]
+  else 
+    put "new" into pDoc["dbdb"]["flag"]
+    put 0 into pDoc["dbdb"]["lastsync"]
+  end if
+  put tSett["idprefix"] & pDoc["dbdb"]["lastsync"] into pDoc["dbdb"]["syncid"]
+  set the daybedDB[tID] of this stack to pDoc
 end dbdb.local.setdoc
 
 command dbdb.local.deletedoc pDocID
@@ -550,11 +583,144 @@ command dbdb.stack.save pStackName pPropSet
      save stack pStackName
 end dbdb.stack.save
 
-on ___DaybedDB_Sync_Functions__
-end ___DaybedDB_Sync_Functions__
+on ___DaybedDB_Local_File
+end ___DaybedDB_Local_File
 
-function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther pIDPrefix pAppName pPurge
+command dbdb.file.load pFileName pMainFolder pSubFolder
+  -----
+  local tData
+  -----
+  if pFileName is empty then put the short name of this stack & "_data"  into pFileName
+  put getFilePath(pMainFolder,pSubFolder,pFileName) into pFileName
+  if there is a file pFilePath then 
+    put URL("binfile:" & pFileName) into tData
+    set the customproperties["daybedDB"] of this stack to arrayDecode(tData)
+  end if
+end dbdb.file.load
+
+command dbdb.file.save pFileName pMainFolder pSubFolder
+  -----
+  local tData
+  -----
+  if pFileName is empty then put the short name of this stack & "_data" into pFileName
+  put getFilePath(pMainFolder,pSubFolder,pFileName) into pFileName
+  put the customproperties["daybedDB"] of this stack into tData
+  
+  put arrayEncode(tData) into URL("binfile:" & pFileName)
+end dbdb.file.save
+
+on ___DaybedDB_Local_JSON_File
+end ___DaybedDB_Local_JSON_File
+
+command dbdb.json.load pFileName pMainFolder pSubFolder
+  -----
+  local tData
+  -----
+  if pFileName is empty then put the short name of this stack & "_data"  into pFileName
+  put getFilePath(pMainFolder,pSubFolder,pFileName) into pFileName
+  if there is a file pFileName then 
+    put URL("file:" & pFileName) into tData
+    set the customproperties["daybedDB"] of this stack to j2a(tData)
+  end if
+end dbdb.json.load
+
+command dbdb.json.save pFileName pMainFolder pSubFolder
+  -----
+  local tData
+  -----
+  if pFileName is empty then put the short name of this stack & "_data" into pFileName
+  put getFilePath(pMainFolder,pSubFolder,pFileName) into pFileName
+  put the customproperties["daybedDB"] of this stack into tData
+  
+  put a2j(tData,,true) into URL("file:" & pFileName)
+end dbdb.json.save
+
+
+on ___DaybedDB_User_Functions__
+end ___DaybedDB_User_Functions__
+
+function dbdb.appdb.createdb pURL pDB pAuth
+  -----
+  local tResult
+  -----
+  if pAuth is not empty then 
+    put pAuth into tOptions["authval"]
+    put "encoded" into tOptions["authtype"]
+  end if
+  put couch.put("db",pURL,PDB,,,tOptions) into tResult["db"]
+  put couch.put("doc",pURL,tSettings["db"],dbdb.appdbdesigndoc(),,tOptions) into tResult["ddoc"]
+  return tResult
+end dbdb.appdb.createdb
+
+function dbdb.appdb.createuser pURL pDB pUser pPass pConflict pAuth pOther pPurge
+  ------ 
+  local tOptions, tSettings, tUser, tResult
   ------
+  if pAuth is not empty then 
+    put pAuth into tOptions["authval"]
+    put "encoded" into tOptions["authtype"]
+  end if
+  put urlencode(pUser) into pUser
+  
+  ---create Settings
+  put "appdb" into tSettings["type"]
+  put pURL into tSettings["url"]
+  put pDB into tSettings["db"]
+  put pAuth into tSettings["auth"]
+  put 0 into tSettings["lastsync"]
+  put czVal(pConflict,"server") into tSettings["conflict"]
+  put pUser into tSettings["idprefix"]
+  put czVal(pPurge,30) into tSettings["purge"]
+  put encodeUserPass(pUser,pPass) into tSettings["userauth"]
+  put "dbdbid_" & pUser into tSettings["userdoc"]
+  put pOther into tSettings["userdata"]
+  
+  ---create User Doc
+  put "dbdbid_" & pUser into tUser["_id"]
+  put the seconds into tUser["datestamp"]
+  put encodeUserPass(pUser,pPass,tUser["datestamp"]) into tUser["userauth"]
+  put pOther into tUser["userdata"]
+  put couch.put("doc",pURL,pDB,tUser,tOther) into tResult
+  
+  if tResult["ok"] is not true and tResult["error"] is "conflict" then
+    put dbdb.appdb.login(tSettings) into tResult
+    
+    if tResult["reason"] is "login_failed" then 
+      put empty into tSettings
+      put true into tSettings ["error"]
+      put "user_exists" into tSettings["reason"]
+    else
+      put tResult["_rev"] into tSettings["userrev"]
+    end if
+    
+  else
+    put tResult["rev"] into tSettings["userrev"]
+  end if
+  
+  return tSettings
+end dbdb.appdb.createuser
+
+function dbdb.appdb.login pSett
+  ---
+  local tResult, tOptions
+  ---
+  if pAuth is not empty then 
+    put pSett["auth"] into tOptions["authval"]
+    put "encoded" into tOptions["authtype"]
+  end if
+  
+  put couch.get("doc",pSett["url"],pSett["db"],pSett["userdoc"],tOptions) into tResult
+  if tResult["userauth"] is not pSett["userauth"] then
+    put empty into tResult
+    put true into tResult["error"]
+    put "login_failed" into tResult["reason"]
+  end if
+  
+  return tResult
+end dbdb.appdb.login
+
+function dbdb.userdb.createuser pURL pPrefix pUser pPass pConflict pAuth pOther pIDPrefix pAppName pPurge
+  ------ 
   local tOptions, tSettings, tResult
   ------
   if pAuth is not empty then 
@@ -569,10 +735,12 @@ function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther pI
   
   put pURL into tSettings["url"]
   put 0 into tSettings["lastsync"]
+  put "userdb" into tSettings["type"]
   put czVal(pConflict,"server") into tSettings["conflict"]
   put czVal(pIDPrefix,"user") into tSettings["idprefix"]
   put czVal(pAppName,tSettings["idprefix"]) into tSettings["appname"]
   put czVal(pPurge,30) into tSettings["purge"]
+  put pOther into tSettings["userdata"]
   
   put tSettings into tResult["dbdb"]
   
@@ -585,7 +753,10 @@ function dbdb.createuseranddb pURL pPrefix pUser pPass pConflict pAuth pOther pI
   
   put couch.securedb("set",pURL,tSettings["db"],tOptions,pUser,,pUser) into tResult["security"]
   return tResult
-end dbdb.createuseranddb
+end dbdb.userdb.createuser
+
+on ___DaybedDB_Sync_Functions__
+end ___DaybedDB_Sync_Functions__
 
 function dbdb.sync pArray pForceFull
   /*
@@ -603,7 +774,6 @@ function dbdb.sync pArray pForceFull
   
   put pArray["_dbdbsettings"]["db"] into dbName
   put pArray["_dbdbsettings"]["url"] into dbURL
-  put "daybed" & pArray["_dbdbsettings"]["appname"] into dbDdoc
   put pArray["_dbdbsettings"]["auth"] into tOptions["authval"]
   put "encoded" into tOptions["authtype"]
   
@@ -620,6 +790,11 @@ function dbdb.sync pArray pForceFull
   end repeat
   
   --download list with ddoc using synctime as key filter
+  if pArray["_dbdbsettings"]["type"] is "appdb" then
+    put "daybedusers" into dbDdoc
+  else
+    put "daybed" & pArray["_dbdbsettings"]["appname"] into dbDdoc
+  end if
   put "view" into tOptions["ddoc"]["func"]
   put "app" into tOptions["ddoc"]["name"]
   put couch.get("design",dbURL,dbName,dbDdoc,tParams,tOptions) into downList
@@ -674,7 +849,6 @@ function dbdb.sync pArray pForceFull
         put tempID into downDocs["keys"][tKey]
         next repeat
       end if
-      
       
       put "server" into pArray["_dbdbsettings"]["conflict"]
       
@@ -742,8 +916,26 @@ function dbdb.sync pArray pForceFull
   return pArray
 end dbdb.sync
 
-command dbdb.purge
+command dbdb.purge pSettings
   --TODO: add purge function
+  local tOptions, tParams, tKey, purgeList, purgeDocs
+  ---
+  put the seconds - (pSettings["purge"] * 86400) into tOptions["endkey"]
+  put "purge" into tOptions["ddoc"]["name"]
+  put "encoded" into tOptions["authtype"]
+  put pSettings["auth"] into tOptions["authval"]
+  
+  put couch.get("ddoc-view",pSettings["url"],pSettings["db"],("daybed" & pSettings["appname"]),tParams,tOptions) into purgeList
+  
+  if purgeList["rows"] is empty then exit dbdb.purge
+  
+  repeat for each key tKey in purgeList["rows"]
+    put purgeList["rows"][tKey]["value"]["id"] into purgeDocs["docs"][tKey]["_id"]
+    put purgeList["rows"][tKey]["value"]["rev"] into purgeDocs["docs"][tKey]["_rev"]
+    put true into purgeDocs["docs"][tKey]["_deleted"]
+  end repeat
+  
+  put couch.post("bulk_docs",pSettings["url"],pSettings["db"],purgeDocs,tParams,tOptions) into upList
 end dbdb.purge
 
 function dbdb.newdocid pSettings
@@ -762,6 +954,30 @@ function dbdb.newdocid pSettings
    put (the seconds - 979668822) after tNewID
    return tNewID
 end dbdb.newdocid
+
+function dbdb.appdbdesigndoc
+  local tDDoc
+  -----
+  put "_design/daybed" & pAppName into tDDoc["_id"]
+  
+  put "function (doc) { emit(doc.dbdb.syncid,{" into tDDoc["views"]["app"]["map"]
+  put quote & "app" & quote & colon & "doc.dbdb.app" & comma  after tDDoc["views"]["app"]["map"]
+  put quote & "id" & quote & colon & "doc._id" & comma  after tDDoc["views"]["app"]["map"]
+  put quote & "deleted" & quote & colon & "doc.dbdb.deleted" & comma  after tDDoc["views"]["app"]["map"]
+  put quote & "rev" & quote & colon & "doc._rev" after tDDoc["views"]["app"]["map"]
+  put "});}"  after tDDoc["views"]["app"]["map"]
+  
+  put "function (doc) { if(doc.dbdb.deleted == true) emit(doc.dbdb.syncid,{" into tDDoc["views"]["purge"]["map"]
+  put quote & "app" & quote & colon & "doc.dbdb.app" & comma  after tDDoc["views"]["purge"]["map"]
+  put quote & "id" & quote & colon & "doc._id" & comma  after tDDoc["views"]["purge"]["map"]
+  put quote & "deleted" & quote & colon & "doc.dbdb.deleted" & comma  after tDDoc["views"]["purge"]["map"]
+  put quote & "rev" & quote & colon & "doc._rev" after tDDoc["views"]["purge"]["map"]
+  put "});}"  after tDDoc["views"]["purge"]["map"]
+  
+  put sVersion into tDDoc["version"]
+  put "javascript" into tDDoc["language"]
+  return tDDoc
+end dbdb.appdbdesigndoc
 
 function dbdb.appdesigndoc pAppName
    local tDDoc, tApp
@@ -782,7 +998,7 @@ function dbdb.appdesigndoc pAppName
    put quote & "rev" & quote & colon & "doc._rev" after tDDoc["views"]["purge"]["map"]
    put "});}"  after tDDoc["views"]["purge"]["map"]
 
-   put "1.8.5" into tDDoc["version"]
+   put sVersion into tDDoc["version"]
    put "javascript" into tDDoc["language"]
    return tDDoc
 end dbdb.appdesigndoc
@@ -842,6 +1058,15 @@ private function getFilePath pMainFolder pSubFolder pFileName
   
   return tPathName
 end getFilePath
+
+function encodeUserPass pUser pPass pApp
+  ---
+  local tString
+  ---
+  encrypt pUser & ":" & pPassword & "@" & pApp using "aes-256-cbc" with key "+(011)-8-999-88199-9119-725----3" at 256 bit
+  put base64encode(it) into tString
+  return tString
+end encodeUserPass
 
 function couch.authval pUser pPass
   local tAuthVal
@@ -1043,7 +1268,7 @@ function j2a pJson asUnicode pSkipValidation
   end switch
 end j2a
 
-function a2j pArray keepNumeric
+function a2j pArray keepNumeric makePretty
   -----
   local tJson
   -----
@@ -1061,6 +1286,7 @@ function a2j pArray keepNumeric
       break
   end switch
   replace "[null]" with "[]" in tJson
+  if makePretty then return gingerJson(tJson)
   return tJson
 end a2j
 
@@ -1537,19 +1763,19 @@ function fast.arrayToJson pArray pkeepNumeric pfillTheBlanks
       put the keys of pArray into tArrayList
       sort tArrayList numeric
       repeat for each line tValue in tArrayList
-         --put jsonValue(tValue) & comma after tJSON
          if tValue is empty then
             put space after tJSON
          else
-            --put pArray(tValue) into tValue
             put jsonValue(pArray[tValue]) & comma after tJSON
          end if
       end repeat
       put "]" into the last char of tJSON
    else
       # the array's keys are not all numerical, so the root element will be a JSON *object*
-      put "{" into tJSON
-      repeat for each key tKey in pArray
+     put "{" into tJSON
+     put the keys of pArray into tArrayList
+     sort tArrayList
+      repeat for each line tKey in tArrayList
          # all JSON object keys are double-quoted strings:
          put quote & tKey & quote & ":" & jsonValue(pArray[tKey]) & comma after tJSON
       end repeat
@@ -1584,21 +1810,11 @@ function isJson pJson
      local kJSONDelimiter = ":"
      local kValidJSONDelimiters = "{}[],:"
      local n
-     local tObjectCount, tArrayCount
+     local tObjectCount = 0 
+     local tArrayCount = 0
      
-     put 0 into tObjectCount
-     put 0 into tArrayCount
      tokenize pJson
-     
-     /*
-     repeat for each element tToken in sJson
-          if tToken is in "{[" then add 1 to tDepth
-          if tToken is in "}]" then subtract 1 from tDepth
-     end repeat
-     
-     if tDepth <> 0 then return false
-     */
-     
+
      ##
      ## New code to validate JSON. Catches mis-matched tokens
      ## Adds roughly 10% time to fastJson. Still debating in my head if
@@ -1951,3 +2167,4 @@ private function fillBlanks pArray
    end repeat
    return pArray
 end fillBlanks
+
